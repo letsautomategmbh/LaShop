@@ -2,8 +2,13 @@
 
 @section('title', __('Store'))
 
-{{-- Kein @section('sidebar'): das Layout reserviert dafuer eine zweite Spalte,
-     und der Katalog hat dort nichts unterzubringen. --}}
+{{-- Die Seitenleiste der Modulverwaltung, damit der Sprung von dort hierher
+     den Zusammenhang behält: wer aus "Modules" kommt, findet den Weg zurück
+     an derselben Stelle. --}}
+@section('sidebar')
+    @include('partials/sidebar_menu_toggle')
+    @include('lastore::partials.sidebar_menu')
+@endsection
 
 @section('content')
     <div class="section-heading">
@@ -24,81 +29,47 @@
 
         @if ($adoptable)
             {{-- Der Fall, der beim Umstieg zuerst eintritt: Module laufen schon,
-                 haben aber noch keine Lizenz aus dem Store. Sie laufen dabei
-                 ununterbrochen weiter - es aendert sich nur, woher die Updates
-                 kommen. Deshalb steht das oben und nicht als Warnung. --}}
-            <div class="panel panel-default margin-bottom">
-                <div class="panel-heading">
-                    <strong>{{ __('Bereits installiert, noch ohne Lizenz') }}</strong>
-                </div>
-                <div class="panel-body">
-                    <p class="text-muted">
-                        {{ __('Diese Module laufen unverändert weiter. Mit dem Schlüssel ändert sich nur, woher sie ihre Updates beziehen.') }}
-                    </p>
+                 haben aber noch keine Lizenz aus dem Store.
 
-                    @foreach ($adoptable as $row)
-                        <form method="POST" action="{{ route('lastore.licenses.activate') }}" class="form-inline" style="margin-bottom:8px">
-                            {{ csrf_field() }}
-                            <input type="hidden" name="product_alias" value="{{ $row['alias'] }}">
-                            <span class="mono" style="display:inline-block;min-width:200px"><strong>{{ $row['alias'] }}</strong></span>
-                            <span class="text-muted" style="display:inline-block;min-width:80px">{{ $row['installed'] }}</span>
-                            <input type="text" class="form-control input-sm mono" name="license_key" style="width:330px"
-                                   placeholder="LA-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off">
-                            <button type="submit" class="btn btn-primary btn-sm">{{ __('Übernehmen') }}</button>
-                        </form>
-                    @endforeach
-                </div>
+                 Hier steht nur noch der HINWEIS. Das Formular dazu stand
+                 vorher doppelt - einmal hier und einmal in der Tabelle
+                 darunter -, und zwei Stellen für dieselbe Handlung sind eine
+                 Stelle zu viel: der Kunde fragt sich, ob es einen Unterschied
+                 gibt. Getragen wird es jetzt von der Spalte "Aktion". --}}
+            <div class="alert alert-info margin-bottom">
+                <strong>{{ trans_choice('{1}Ein Modul läuft schon, noch ohne Lizenz aus dem Store.|[2,*]:count Module laufen schon, noch ohne Lizenz aus dem Store.', count($adoptable), ['count' => count($adoptable)]) }}</strong>
+                <br>{{ __('Sie laufen unverändert weiter. Mit dem Schlüssel ändert sich nur, woher sie ihre Updates beziehen — unten in der Liste unter „Lizenz übernehmen".') }}
             </div>
         @endif
 
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>{{ __('Modul') }}</th>
-                    <th>{{ __('Installiert') }}</th>
-                    <th>{{ __('Im Katalog') }}</th>
-                    <th>{{ __('Zustand') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($inventory as $row)
-                    @if ($row['state'] === \Modules\LaStore\Support\InstalledModules::STATE_FOREIGN)
-                        @continue
-                    @endif
-                    @php $badge = $labels[$row['state']]; @endphp
-                    <tr>
-                        <td>
-                            @if ($row['in_catalog'])
-                                <a href="{{ route('lastore.product', $row['alias']) }}"><strong>{{ $row['name'] }}</strong></a>
-                            @else
-                                <strong>{{ $row['name'] }}</strong>
-                            @endif
-                            <br><small class="text-muted mono">{{ $row['alias'] }}</small>
-                        </td>
-                        <td class="nowrap">
-                            {{ $row['installed'] ?: '—' }}
-                            @if ($row['installed'] && !$row['active'])
-                                <br><small class="text-muted">{{ __('nicht aktiviert') }}</small>
-                            @endif
-                        </td>
-                        <td class="nowrap">{{ $row['available'] ?: '—' }}</td>
-                        <td class="nowrap"><span class="label label-{{ $badge[0] }}">{{ __($badge[1]) }}</span></td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+        {{-- Karten statt Tabelle, im Stil der FreeScout-Module: Sinnbild,
+             Beschreibung, installierte Fassung, Katalogfassung, Zustand.
+             Eine Tabelle zeigt Spalten; eine Karte zeigt ein Modul. --}}
+        <div class="row">
+            @foreach ($inventory as $row)
+                @if ($row['state'] === \Modules\LaStore\Support\InstalledModules::STATE_FOREIGN)
+                    @continue
+                @endif
+                @include('lastore::partials.module_card', ['row' => $row])
+            @endforeach
+        </div>
 
-        @if ($credentials)
-            {{-- Der Grund, warum die Uebernahme ueberhaupt gemacht wird. Steht
-                 bewusst hier und nicht in einer Datei, die niemand liest. --}}
-            <div class="alert alert-warning">
-                <strong>{{ trans_choice('{1}Ein Modul trägt noch Zugangsdaten in seiner module.json.|[2,*]:count Module tragen noch Zugangsdaten in ihrer module.json.', count($credentials), ['count' => count($credentials)]) }}</strong>
-                <br>
-                {{ __('Sie stehen damit auch in der Git-Historie der jeweiligen Repositories. Sobald alle Installationen übernommen sind, kann das Token dort entfernt werden — dieses Modul holt Updates dann über die Lizenz.') }}
-                <br>
-                <small class="mono">{{ implode(', ', array_column($credentials, 'alias')) }}</small>
-            </div>
-        @endif
+        {{-- Hier stand die Warnung "N Module tragen noch Zugangsdaten in
+             ihrer module.json". Sie sagte die Wahrheit, aber sie stand am
+             falschen Ort: ändern kann das nur, wer die Module baut, nicht
+             wer sie betreibt. Der Verwalter einer Installation las eine
+             Warnung, gegen die er nichts tun konnte.
+
+             Die Prüfung selbst ist NICHT weg -- InstalledModules::
+             withCredentials() gibt es weiterhin und sie ist geprüft. Sie
+             gehört in den Betrieb bei uns, nicht auf den Bildschirm des
+             Kunden. --}}
+        <p class="text-muted" style="margin-bottom:12px">
+            <small>
+                {{ __('Powered by') }}
+                <a href="https://letsautomate.ch" target="_blank" rel="noopener noreferrer">let&rsquo;s automate gmbh</a>
+            </small>
+        </p>
 
         <p class="text-muted">
             <small>
@@ -112,4 +83,51 @@
             </small>
         </p>
     </div>
+
+        {{-- Was nur auf DIESEM Server geht.
+
+             Lizenzen verwaltet der Kunde im Portal - umziehen, Laufzeit sehen,
+             die Offline-Lizenzdatei erzeugen. Zwei Dinge kann das Portal aber
+             nicht: eine Datei auf diesen Server legen und die Prüfung hier
+             anstossen. Nur das steht deshalb noch im Modul, und zugeklappt,
+             weil es selten gebraucht wird. --}}
+        <details class="margin-top">
+            <summary style="cursor:pointer">{{ __('Server ohne Internetverbindung') }}</summary>
+
+            <div class="panel panel-default margin-top">
+                <div class="panel-body">
+                    <p class="text-muted">
+                        {{ __('Das Kundenportal erzeugt aus der Kennung dieses Servers eine signierte Lizenzdatei. Diese hier hochladen.') }}
+                    </p>
+
+                    {{-- isRegistered() und installation_id, NICHT ->uuid: die
+                         Spalte heisst installation_id, und ->uuid gibt es
+                         nicht. Mein erster Entwurf fragte danach, bekam
+                         darum immer null und hätte den Upload jedem Kunden
+                         verborgen. Die Zeile weiter unten machte es von
+                         Anfang an richtig — ich hatte sie nicht angesehen. --}}
+                    @if ($installation->isRegistered())
+                        <p>
+                            {{ __('Kennung dieses Servers') }}:
+                            <code class="mono">{{ $installation->installation_id }}</code>
+                        </p>
+
+                        <form method="POST" action="{{ route('lastore.licenses.offline') }}" enctype="multipart/form-data" class="form-inline">
+                            {{ csrf_field() }}
+                            <input type="file" name="license_file" class="form-control input-sm" accept=".txt,.lic,text/plain" required>
+                            <button type="submit" class="btn btn-default btn-sm">{{ __('Lizenzdatei einlesen') }}</button>
+                        </form>
+                    @else
+                        {{-- Ohne Kennung gibt es nichts zu erzeugen. Die Kennung
+                             entsteht bei der ersten Anmeldung am Shop — vorher ist
+                             der Offline-Weg gar nicht gangbar, und ein leeres
+                             Feld hier wäre eine Einladung zum Rätseln. --}}
+                        <p class="text-muted">
+                            {{ __('Dieser Server ist noch nicht am Shop angemeldet. Die Kennung entsteht mit der ersten Lizenz — danach steht sie hier.') }}
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </details>
+
 @endsection
