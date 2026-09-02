@@ -282,7 +282,7 @@ class LicenseService
             case LicenseToken::BAD_SIGNATURE:
                 return __('Die Signatur dieser Lizenz stimmt nicht. Bitte meldet euch bei uns, bevor ihr etwas installiert.');
             case LicenseToken::UNKNOWN_KEY:
-                return __('Diese Lizenz wurde mit einem Schlüssel signiert, den dieses Modul nicht kennt. Meist hilft ein Update des Store-Moduls.');
+                return __('Diese Lizenz wurde mit einem Schlüssel signiert, den dieses Modul nicht kennt. Meist hilft ein Update von LaShop.');
             case LicenseToken::WRONG_AUDIENCE:
                 return __('Diese Lizenz gehört zu einem anderen Modul.');
             case LicenseToken::WRONG_INSTALLATION:
