@@ -1,0 +1,23 @@
+{
+    "ok": true,
+    "product": {
+        "alias": "bexiosubscriptions",
+        "name": "Bexio Abonnemente",
+        "summary": "Abonnemente und Verträge für Bexio-Kunden verwalten und wiederkehrend abrechnen.",
+        "kind": "freescout_module",
+        "version": "1.5.0",
+        "min_app_version": "1.8.220",
+        "min_php": "7.1",
+        "requires": {
+            "bexio": "2.15.0"
+        },
+        "prices": [
+            {
+                "license_type": "yearly_per_user",
+                "currency": "CHF",
+                "unit_amount": 900,
+                "per_user": true
+            }
+        ]
+    }
+}

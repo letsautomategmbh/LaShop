@@ -1,0 +1,17 @@
+{
+    "name": "LaStore",
+    "alias": "lastore",
+    "description": "Katalog, Lizenzierung und Installation der Module von let's automate — direkt in FreeScout.",
+    "keywords": ["store", "lizenz", "license", "module", "letsautomate"],
+    "version": "0.1.0",
+    "author": "let's automate",
+    "authorUrl": "https://letsautomate.ch",
+    "active": 1,
+    "order": 951,
+    "providers": [
+        "Modules\\LaStore\\Providers\\LaStoreServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

@@ -1,0 +1,53 @@
+{
+    "ok": true,
+    "licenses": [
+        {
+            "key": "LA-4K7QM-9XR2T-B8VN3-HW6YD-J1ZJG",
+            "product_alias": "bexiosubscriptions",
+            "response": {
+                "ok": true,
+                "status": "valid",
+                "token": "v1.eyJraWQiOiJsYTEiLCJpc3MiOiJzaG9wLmxldHNhdXRvbWF0ZS5jaCIsInN1YiI6ImIzZjFjOGEyLTRlN2QtNGIxOS05ZjMwLTJhNmM1ZDgxZTA0NCIsImF1ZCI6ImJleGlvc3Vic2NyaXB0aW9ucyIsImxpYyI6ImUxMWU5Y2E4ZmVkMDg3OTYiLCJ0eXAiOiJ5ZWFybHlfcGVyX3VzZXIiLCJzZWF0cyI6MjUsImlhdCI6MTc4ODExNTM4OCwiZXhwIjoxOTI0OTkyMDAwLCJncmMiOjE5Mjc1ODQwMDAsInVwZCI6MTkyNDk5MjAwMH0.Xz6v3bPd8WVDy8oyIwfeof-sgrTXhfWMzKP-SA316wdmyQB5ojHOfz44Psel8glicSCwLvMk2_eHWuei3YQx2QeessuVXfe_lW0XQ1uDUwmry1OEH3b50MJinsyR8Zqv29b_skG1tvqsNzDuogO0VDLmewPupSBm33sqBFuK6YaKk12IEY2REWwDHKvRmEioY1X3awRAOOw4LbdSrOEWA7xrOq2O74fNm5FUcFe7NzwdVh9ESZlz72YK0l2_Ta72FkVmQhIL8yFRoZebTTY11Xsa_olAqyz8lVp0aJa6SvDryU7vVPNSyGlbSfgnD9-B1-2GJ1jFzIoF_MNUsKkyZg",
+                "license": {
+                    "type": "yearly_per_user",
+                    "seats": 25,
+                    "releases_left": 2,
+                    "valid_until": "2031-01-01",
+                    "updates_until": "2031-01-01"
+                }
+            }
+        },
+        {
+            "key": "LA-7T2WP-FH4M9-NQ3XK-D8BVR-5YJMD",
+            "product_alias": "invoicing",
+            "response": {
+                "ok": true,
+                "status": "valid",
+                "token": "v1.eyJraWQiOiJsYTEiLCJpc3MiOiJzaG9wLmxldHNhdXRvbWF0ZS5jaCIsInN1YiI6ImIzZjFjOGEyLTRlN2QtNGIxOS05ZjMwLTJhNmM1ZDgxZTA0NCIsImF1ZCI6Imludm9pY2luZyIsImxpYyI6IjkyZjFlZWI2OTU3YzdmZDciLCJ0eXAiOiJvbmVfdGltZSIsInNlYXRzIjpudWxsLCJpYXQiOjE3ODgxMTUzODgsImV4cCI6MTkyNDk5MjAwMCwiZ3JjIjoxOTI0OTkyMDAwLCJ1cGQiOjE4MzAyOTc2MDB9.imrmvdM4tSl8rwjscA_smUiKEly9Em9y8zfDXdVDpJFxXSPzbC2GOprnLIoj68wvxNuzQZ71ykSCK8B6WY901Ha7t8_w2N0Ruvxkq2FmFplTa12OF3WjCQFmaEG1sAEyVBpZv2pkF-sys3AhkK9K0TlUUHecBMoGcy9FTCpEcdJ5c1MJ0AWGJs64Bh9RoiFI48biKPVreEvNME3Jxe91Jwmp5R6IVxj8yNqbUOoGMkt2asGfQhcqM4d5KCb2EEYm5sZu2BNXgo7KWhg-l19MCM7nVeXri5cc1RtEk081NQHh0iuWSMhFESHP7KNfpr23y_LfJgl0nkufjsNCiejblw",
+                "license": {
+                    "type": "one_time",
+                    "seats": null,
+                    "releases_left": 1,
+                    "valid_until": "2031-01-01",
+                    "updates_until": "2028-01-01"
+                }
+            }
+        },
+        {
+            "key": "LA-9WQ2N-R6TB4-KHX3M-J85DF-YPVK4",
+            "product_alias": "bexio",
+            "response": {
+                "ok": true,
+                "status": "valid",
+                "token": "v1.eyJraWQiOiJsYTEiLCJpc3MiOiJzaG9wLmxldHNhdXRvbWF0ZS5jaCIsInN1YiI6ImIzZjFjOGEyLTRlN2QtNGIxOS05ZjMwLTJhNmM1ZDgxZTA0NCIsImF1ZCI6ImJleGlvIiwibGljIjoiMjJjMDc1YjRhNTBmZDk1OCIsInR5cCI6InllYXJseSIsInNlYXRzIjpudWxsLCJpYXQiOjE3ODgxMTUzODgsImV4cCI6MTczNTY4OTYwMCwiZ3JjIjoxNzM4MjgxNjAwLCJ1cGQiOjE3MzU2ODk2MDB9.qM3Er_8qSPHETzDTYA6355B5EuvumQz0-DhsW8h2g9nmRAWAz7TEU2hBprgT_-aOg-N1VOiCj9WorbrYaHzlu3-FZ6SALXhnFJ_TLvzOkHU8srBeq8z-BgHDYabuFznLXZ_KkjMNkRJToIA-VUIhiYOoL7IJ75ZYv9tJKez9PM4DKnqY4dMhTy9vv0wtM-t_yFY0f4wuyyW2O0z8_So4W1TeE9svSaJGicU-pOYEvIwP3r531G-P0gQkcykU54HX5WXM8cMwpohXiUbZfDdePiu6-oMo9jMS8YSL4FVfwRsQ1Hdl16RFbY99G8Ou6dujFnEbeHSOudL9SJrhBCPrOQ",
+                "license": {
+                    "type": "yearly",
+                    "seats": null,
+                    "releases_left": 0,
+                    "valid_until": "2025-01-01",
+                    "updates_until": "2025-01-01"
+                }
+            }
+        }
+    ]
+}

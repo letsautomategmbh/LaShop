@@ -1,0 +1,16 @@
+.DS_Store
+*.log
+
+# Kein Schluessel im Repo — mit EINER Ausnahme.
+*.key
+*.pem
+
+# Die Ausnahme: die Entwicklungsschluessel unter Tests/Fixtures liegen
+# absichtlich hier, damit die Tests ohne Einrichtung laufen. Sie sind
+# Wegwerfschluessel und muessen vor der ersten Veroeffentlichung ersetzt
+# werden — die vier Schritte stehen in Tests/Fixtures/keys/README.md.
+#
+# Die Regel ist so gebaut, dass ein Schluessel an JEDER ANDEREN Stelle
+# blockiert bleibt. Wer spaeter versehentlich einen echten Schluessel
+# ablegt, kann ihn nicht committen.
+!Tests/Fixtures/keys/*.key
