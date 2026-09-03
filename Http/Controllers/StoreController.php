@@ -86,6 +86,7 @@ class StoreController extends Controller
             'error'        => $error,
             'transport'    => config('lastore.transport'),
             'selbstNeu'    => SelfUpdater::hinterlegt(),
+            'selbstNotiz'  => SelfUpdater::hinterlegteNotiz(),
         ]);
     }
 

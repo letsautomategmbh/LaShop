@@ -59,6 +59,15 @@ class SelfUpdater
      */
     const MERKER = 'lastore.selbst_verfuegbar';
 
+    /**
+     * Die Notiz zur neuen Fassung, in der Sprache der Installation.
+     *
+     * Ein eigener Schluessel und nicht JSON im MERKER: der MERKER wird
+     * verglichen (version_compare), und ein Feld, das zwei Dinge traegt,
+     * verliert genau dann eines davon, wenn man es am dringendsten braucht.
+     */
+    const MERKER_NOTIZ = 'lastore.selbst_notiz';
+
     const AKTUELL = 'aktuell';
     const VERFUEGBAR = 'verfuegbar';
     const FERTIG = 'fertig';
@@ -87,6 +96,11 @@ class SelfUpdater
         // Den Befund hinterlegen, damit die Oberflaeche ihn ohne eigenen
         // Aufruf kennt. Leer heisst: nichts Neues.
         \Option::set(self::MERKER, $status === self::VERFUEGBAR ? $neu : '');
+
+        // Die Notiz gleich mit: sie kommt aus derselben Antwort, und die
+        // Seite darf dafuer nicht ein zweites Mal nach draussen.
+        $notiz = isset($meldung['changelog']) ? $meldung['changelog'] : '';
+        \Option::set(self::MERKER_NOTIZ, ($status === self::VERFUEGBAR && is_string($notiz)) ? $notiz : '');
 
         return [
             'status'  => $status,
@@ -162,6 +176,7 @@ class SelfUpdater
         // Der Merker VOR dem Raeumen: danach wird nichts mehr geladen, und
         // Option::set braucht die Datenbankschicht, die jetzt noch steht.
         \Option::set(self::MERKER, '');
+        \Option::set(self::MERKER_NOTIZ, '');
 
         self::raeumeZwischenspeicher();
         self::raeumeAlteStaende($alt);
@@ -193,6 +208,16 @@ class SelfUpdater
         $jetzt = StoreClient::clientVersion();
 
         return ($jetzt !== '' && version_compare($wert, $jetzt, '<=')) ? '' : $wert;
+    }
+
+    /**
+     * Die hinterlegte Notiz -- nur wenn auch eine Fassung bereitliegt.
+     *
+     * @return string
+     */
+    public static function hinterlegteNotiz()
+    {
+        return self::hinterlegt() === '' ? '' : (string) \Option::get(self::MERKER_NOTIZ, '');
     }
 
     /** @return void */
@@ -430,6 +455,31 @@ class SelfUpdater
      */
     private static function raeumeZwischenspeicher()
     {
+        /*
+         * FreeScouts EIGENE Modulliste zuerst.
+         *
+         * Sie liegt im Anwendungszwischenspeicher, nicht in einer Datei, und
+         * sie merkt sich Name UND Fassung jedes Moduls. Ohne dieses Leeren
+         * las die Kommandozeile nach dem Tausch weiter die alte Fassung --
+         * am 04.09.2026 auf der Produktion beobachtet: auf der Platte lag
+         * 1.0.7, `lastore:self-update --pruefen` sagte "installiert: 1.0.6",
+         * und der naechtliche Lauf haette darum jede Nacht dasselbe Paket
+         * geholt. Die Weboberflaeche war richtig, weil sie ihren eigenen
+         * Aufruf hat -- der Unterschied faellt genau dort auf, wo niemand
+         * hinsieht.
+         *
+         * \Module und der Zwischenspeicher liegen im Kern und in vendor/,
+         * nicht im getauschten Ordner. Der Aufruf ist nach dem Tausch also
+         * erlaubt. In try/catch, weil ein Fehler hier den geglueckten Tausch
+         * nicht zunichte machen darf.
+         */
+        try {
+            \Module::clearCache();
+        } catch (\Exception $e) {
+            // Still: der Tausch ist gelungen, das Leeren holt der naechste
+            // Aufruf von freescout:clear-cache nach.
+        }
+
         @unlink(base_path('bootstrap/cache/config.php'));
 
         foreach ((array) @glob(storage_path('framework/views/*.php')) as $datei) {

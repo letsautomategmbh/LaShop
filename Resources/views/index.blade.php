@@ -29,6 +29,24 @@
                 {{ csrf_field() }}
                 <button type="submit" class="btn btn-primary btn-sm">{{ __('Jetzt aktualisieren') }}</button>
             </form>
+            {{-- Was sich aendert, nicht nur DASS sich etwas aendert.
+
+                 Aufklappbar und nicht offen: der Hinweis steht ueber allem
+                 anderen auf der Seite, und eine Notiz von zehn Zeilen waere
+                 dort eine Wand. Wer wissen will, was kommt, klickt einmal.
+
+                 Die Notiz kommt aus derselben Antwort wie die Fassung und
+                 liegt neben ihr in einer Option -- kein zweiter Netzaufruf
+                 beim Zeichnen der Seite. --}}
+            @if (!empty($selbstNotiz))
+                <details style="margin-top:6px">
+                    <summary style="cursor:pointer"><small>{{ __('Was sich ändert') }}</small></summary>
+                    <div class="text-muted" style="margin-top:4px;max-width:68em">
+                        <small>{!! nl2br(e($selbstNotiz)) !!}</small>
+                    </div>
+                </details>
+            @endif
+
             <div class="text-muted" style="margin-top:6px">
                 <small>{{ __('Das Paket wird geprüft, bevor es ausgepackt wird: erst die Signatur, dann die Prüfsumme. Der bisherige Stand bleibt als Sicherung liegen.') }}</small>
             </div>
