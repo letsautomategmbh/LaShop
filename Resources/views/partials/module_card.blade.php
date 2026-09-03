@@ -55,7 +55,11 @@
                     @if ($ablauf['art'] === 'nutzung')
                         {{ $ablauf['abgelaufen'] ? __('Nutzung endete') : __('Nutzbar bis') }}
                     @else
-                        {{ $ablauf['abgelaufen'] ? __('Updates endeten') : __('Updates bis') }}
+                        {{-- „Support bis", nicht „Updates bis": an dem Datum
+                             endet beides, und Support ist das, was den Kunden
+                             interessiert. Das Modul läuft weiter -- deshalb
+                             steht hier nicht „Nutzbar bis". --}}
+                        {{ $ablauf['abgelaufen'] ? __('Support endete') : __('Support bis') }}
                     @endif
                     <strong>{{ $ablauf['datum']->format('d.m.Y') }}</strong>
                 </span>
