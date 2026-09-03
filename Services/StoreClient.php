@@ -41,11 +41,26 @@ class StoreClient
         return new HttpTransport(self::clientVersion());
     }
 
-    /** @return string */
+    /**
+     * Die eigene Fassung, aus der module.json.
+     *
+     * findByAlias und NICHT find: \Module::find() sucht nach dem NAMEN des
+     * Moduls, nicht nach dem Kuerzel. Solange beide "LaStore" hiessen, fiel
+     * das nicht auf -- mit der Umbenennung auf "LaShop" fand sich das Modul
+     * selbst nicht mehr, und clientVersion() gab eine leere Zeichenkette.
+     *
+     * Die Folge war still und haesslich: pruefen() vergleicht die eigene
+     * Fassung mit der angebotenen, und ohne eigene Fassung ist JEDE angebotene
+     * neuer. Der Hinweis "Fassung X liegt bereit" haette dauerhaft gestanden,
+     * und der Autopilot haette jede Nacht dasselbe Paket eingespielt.
+     * Aufgefallen erst im vollen Durchlauf, weil dort "installiert: —" stand.
+     *
+     * @return string
+     */
     public static function clientVersion()
     {
         try {
-            $module = \Module::find('lastore');
+            $module = \Module::findByAlias('lastore');
 
             return $module ? (string) $module->get('version') : '';
         } catch (\Exception $e) {
@@ -189,6 +204,26 @@ class StoreClient
         $this->refuseWhenOffline();
 
         return $this->transport->get('packages/'.$alias.'/latest', ['channel' => $channel], $this->installationHeaders());
+    }
+
+    /**
+     * Die neueste Fassung DIESES Moduls.
+     *
+     * Ohne Installations-Kopfzeilen: der Weg ist oeffentlich, weil LaShop
+     * keine Lizenz hat und weil es das Stueck ist, ueber das alles andere
+     * geprueft ankommt. Eine Installation, die sich noch nie angemeldet hat,
+     * muss sich trotzdem aktualisieren koennen -- sonst ist ein
+     * Schluesselwechsel eine Sackgasse.
+     *
+     * @param string $channel
+     *
+     * @return array
+     */
+    public function clientLatest($channel = 'stable')
+    {
+        $this->refuseWhenOffline();
+
+        return $this->transport->get('client/latest', ['channel' => $channel]);
     }
 
     // ---- Heartbeat ---------------------------------------------------------

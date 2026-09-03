@@ -50,10 +50,15 @@ class LicenseToken
      * @param string   $expectedInstallation
      * @param int|null $now                Unix-Zeit, fuer Tests setzbar
      * @param int|null $maxSeen            hoechste je gesehene Zeit
+     * @param array|null $keys              Schluessel statt PublicKeys::all(),
+     *                                      nur fuer Tests. Als Parameter und
+     *                                      nicht als statischer Umschalter:
+     *                                      was Tests umbiegen koennen, kann
+     *                                      auch im Betrieb umgebogen werden.
      *
      * @return self
      */
-    public static function verify($token, $expectedAudience, $expectedInstallation, $now = null, $maxSeen = null)
+    public static function verify($token, $expectedAudience, $expectedInstallation, $now = null, $maxSeen = null, ?array $keys = null)
     {
         $now = $now === null ? time() : (int) $now;
 
@@ -78,7 +83,11 @@ class LicenseToken
             return new self(self::MALFORMED);
         }
 
-        $key = PublicKeys::find($claims['kid']);
+        // Beide Wege durch pick(), damit die Zweckpruefung an einer Stelle
+        // steht: ein Paketschluessel darf niemals ein Token freigeben.
+        $key = $keys === null
+            ? PublicKeys::find($claims['kid'], 'token')
+            : PublicKeys::pick($keys, $claims['kid'], 'token');
 
         if (!$key) {
             return new self(self::UNKNOWN_KEY, $claims);

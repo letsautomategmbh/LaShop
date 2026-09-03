@@ -19,7 +19,18 @@ class LicenseTokenTest extends TestCase
 
     protected function verify($token, $now = null, $maxSeen = null)
     {
-        return LicenseToken::verify($token, self::AUD, self::SUB, $now === null ? $this->inside() : $now, $maxSeen);
+        // Die Fixture-Schluessel werden HINEINGEGEBEN. Frueher standen sie
+        // als la1/la2 in PublicKeys::all(), und diese Tests liefen still
+        // gegen das Produkt - sie haetten also nie bemerkt, wenn die
+        // Entwicklungsschluessel aus der Auslieferung verschwinden.
+        return LicenseToken::verify(
+            $token,
+            self::AUD,
+            self::SUB,
+            $now === null ? $this->inside() : $now,
+            $maxSeen,
+            TokenFactory::publicKeys()
+        );
     }
 
     public function testValidTokenIsAccepted()

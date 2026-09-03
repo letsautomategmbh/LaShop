@@ -1,0 +1,481 @@
+<?php
+
+namespace Modules\LaStore\Support;
+
+use Modules\LaStore\Services\StoreClient;
+use Modules\LaStore\Services\StoreException;
+
+/**
+ * LaShop aktualisiert sich selbst.
+ *
+ * Warum es das gibt, obwohl ein Modul, das sich selbst ersetzt, heikel ist:
+ * dieses Modul prueft jede andere Signatur. Bleibt es stehen, bleibt alles
+ * stehen -- nach einem Schluesselwechsel lehnt es jedes Paket ab, und die
+ * Meldung dazu ("LaShop selbst braucht ein Update") waere eine Sackgasse.
+ * Ein Weg von Hand ist kein Weg: er wird einmal gegangen und dann nie wieder.
+ *
+ * NICHT ueber FreeScouts eigenen Updater. Der laedt und entpackt ungeprueft
+ * direkt nach Modules/ -- fuer das Stueck, das die Vertrauenswurzel traegt,
+ * ist das die falsche Reihenfolge. Hier gilt:
+ *
+ *     Signatur pruefen -> laden -> hashen -> pruefen -> auspacken -> tauschen
+ *
+ * Die Signatur zuerst, ohne eine Datei: sie liegt ueber dem Hash, und den
+ * nennt der Server in seiner Antwort. Eine gefaelschte Antwort scheitert
+ * damit, BEVOR irgendetwas von der Adresse geholt wird, die in derselben
+ * Antwort steht.
+ *
+ * Der Tausch sind zwei Umbenennungen im selben Dateisystem, nicht ein
+ * Kopieren ueber den laufenden Stand. Nach der ersten liegt der alte Ordner
+ * beiseite, nach der zweiten der neue am Platz; scheitert die zweite, wird
+ * die erste zurueckgenommen. Ein halb ausgepacktes Modul gibt es damit nicht.
+ *
+ * ACHTUNG in Entwicklungsumgebungen: der Tausch ersetzt den GANZEN Ordner.
+ * Wo Modules/LaStore eine Git-Arbeitskopie ist -- also bei uns --, waere .git
+ * danach weg, samt allem, was nicht committet war. Darum bricht tauschen() ab,
+ * wenn es ein .git findet: dort gehoert kein Selbstupdate hin, dort wird
+ * entwickelt.
+ *
+ * WICHTIG fuer jeden, der hier etwas ergaenzt: nach dem Tausch darf keine
+ * Klasse mehr NEU geladen werden. Die Dateien liegen dann woanders, und der
+ * Autoloader findet nichts. Alles nach dem Tausch ist darum nur noch
+ * Dateiarbeit mit eingebauten Funktionen.
+ */
+class SelfUpdater
+{
+    /** Der Ordner des Moduls in Modules/ -- gleich dem Namensraum. */
+    const ORDNER = 'LaStore';
+
+    /** Grenze fuer den Download. Dieses Modul ist klein; 30 MiB sind schon viel. */
+    const MAX_BYTES = 31457280;
+
+    /**
+     * Wo der Befund liegt, damit die Seite ihn OHNE Netz zeigen kann.
+     *
+     * Das Modul prueft Lizenztoken oertlich und faellt im Seitenaufbau in
+     * keinen HTTP-Aufruf -- das soll der Hinweis auf eine neue Fassung nicht
+     * durchbrechen. Der naechtliche Lauf schreibt hier hinein, die Seite
+     * liest nur.
+     */
+    const MERKER = 'lastore.selbst_verfuegbar';
+
+    const AKTUELL = 'aktuell';
+    const VERFUEGBAR = 'verfuegbar';
+    const FERTIG = 'fertig';
+
+    /**
+     * Was der Server anbietet, und ob es neuer ist.
+     *
+     * Reine Auskunft: es wird nichts geladen und nichts getauscht. Die
+     * Oberflaeche und der naechtliche Lauf benutzen das, um zu MELDEN --
+     * getauscht wird nur auf Anweisung oder mit eingeschaltetem Autopilot.
+     *
+     * @return array{status:string, version:string, jetzt:string, meldung:array}
+     */
+    public static function pruefen(?StoreClient $client = null)
+    {
+        $client = $client ?: new StoreClient();
+        $meldung = $client->clientLatest(config('lastore.update_channel', 'stable'));
+
+        self::verlangeFelder($meldung);
+
+        $jetzt = StoreClient::clientVersion();
+        $neu = (string) $meldung['version'];
+
+        $status = ($jetzt !== '' && version_compare($neu, $jetzt, '<=')) ? self::AKTUELL : self::VERFUEGBAR;
+
+        // Den Befund hinterlegen, damit die Oberflaeche ihn ohne eigenen
+        // Aufruf kennt. Leer heisst: nichts Neues.
+        \Option::set(self::MERKER, $status === self::VERFUEGBAR ? $neu : '');
+
+        return [
+            'status'  => $status,
+            'version' => $neu,
+            'jetzt'   => $jetzt,
+            'meldung' => $meldung,
+        ];
+    }
+
+    /**
+     * Pruefen, holen, tauschen.
+     *
+     * @return array{status:string, version:string, jetzt:string, alt:?string}
+     *
+     * @throws StoreException
+     */
+    public static function aktualisieren(?StoreClient $client = null, $modules = null)
+    {
+        $bericht = self::pruefen($client);
+
+        if ($bericht['status'] === self::AKTUELL) {
+            return $bericht + ['alt' => null];
+        }
+
+        $meldung = $bericht['meldung'];
+
+        // ── 1. Signatur, ohne eine Datei ──────────────────────────────
+        $sig = PackageVerifier::checkSignature(
+            $meldung['sha256'],
+            $meldung['signature'],
+            $meldung['signing_kid']
+        );
+
+        if (!$sig->passed()) {
+            throw new StoreException($sig->explain(), 'signature_failed:'.$sig->status());
+        }
+
+        // ── 2. Laden ──────────────────────────────────────────────────
+        $zip = self::laden($meldung['download']);
+
+        try {
+            // ── 3. Hash gegen den angekuendigten ──────────────────────
+            $ist = hash_file('sha256', $zip);
+
+            if (!is_string($ist) || !hash_equals(strtolower((string) $meldung['sha256']), strtolower($ist))) {
+                throw new StoreException(
+                    Text::get('Die geladene Datei hat nicht die angekündigte Prüfsumme. Es wird nichts getauscht.'),
+                    'hash_mismatch'
+                );
+            }
+
+            // ── 4. Auspacken, NEBEN das laufende Modul ────────────────
+            $bau = self::auspacken($zip, (string) $meldung['version']);
+        } finally {
+            @unlink($zip);
+        }
+
+        try {
+            // ── 5. Nachsehen, ob das Ausgepackte plausibel ist ────────
+            self::pruefeBaum($bau, (string) $meldung['version']);
+
+            // ── 6. Tauschen ───────────────────────────────────────────
+            $alt = self::tauschen($bau, $modules);
+        } catch (\Exception $e) {
+            self::wegwerfen($bau);
+
+            throw $e;
+        }
+
+        // ── 7. Zwischenspeicher raeumen, damit der neue Stand greift ──
+        // Nur noch Dateiarbeit: die Klassen dieses Moduls liegen jetzt
+        // woanders.
+        // Der Merker VOR dem Raeumen: danach wird nichts mehr geladen, und
+        // Option::set braucht die Datenbankschicht, die jetzt noch steht.
+        \Option::set(self::MERKER, '');
+
+        self::raeumeZwischenspeicher();
+        self::raeumeAlteStaende($alt);
+
+        return [
+            'status'  => self::FERTIG,
+            'version' => (string) $meldung['version'],
+            'jetzt'   => $bericht['jetzt'],
+            'alt'     => $alt,
+        ];
+    }
+
+    /**
+     * Was zuletzt gefunden wurde -- ohne Netz.
+     *
+     * @return string Fassung oder leer
+     */
+    public static function hinterlegt()
+    {
+        $wert = (string) \Option::get(self::MERKER, '');
+
+        if ($wert === '') {
+            return '';
+        }
+
+        // Der Merker kann veraltet sein: wer von Hand aktualisiert hat, hat
+        // ihn nicht geloescht. Darum jedes Mal gegen die laufende Fassung
+        // pruefen, statt ihn zu glauben.
+        $jetzt = StoreClient::clientVersion();
+
+        return ($jetzt !== '' && version_compare($wert, $jetzt, '<=')) ? '' : $wert;
+    }
+
+    /** @return void */
+    private static function verlangeFelder(array $meldung)
+    {
+        foreach (['version', 'sha256', 'signature', 'signing_kid', 'download'] as $feld) {
+            if (empty($meldung[$feld])) {
+                throw new StoreException(
+                    Text::get('Die Antwort des Shops ist unvollständig — :feld fehlt. Es wird nichts getauscht.', ['feld' => $feld]),
+                    'incomplete_response'
+                );
+            }
+        }
+    }
+
+    /** @return string Pfad der geladenen Datei */
+    private static function laden($url)
+    {
+        $ziel = tempnam(sys_get_temp_dir(), 'lashop-');
+
+        try {
+            $http = new \GuzzleHttp\Client();
+            $antwort = $http->request('GET', $url, \Helper::setGuzzleDefaultOptions([
+                'connect_timeout' => 15,
+                'timeout'         => 300,
+                'http_errors'     => false,
+                'sink'            => $ziel,
+            ]));
+        } catch (\Exception $e) {
+            @unlink($ziel);
+
+            throw new StoreException($e->getMessage(), 'download_failed');
+        }
+
+        $code = (int) $antwort->getStatusCode();
+
+        if ($code !== 200) {
+            @unlink($ziel);
+
+            throw new StoreException(
+                Text::get('Der Download wurde mit :code abgewiesen.', ['code' => $code]),
+                'download_rejected'
+            );
+        }
+
+        $groesse = @filesize($ziel);
+
+        if ($groesse === false || $groesse === 0) {
+            @unlink($ziel);
+
+            throw new StoreException(Text::get('Die geladene Datei ist leer.'), 'download_empty');
+        }
+
+        if ($groesse > self::MAX_BYTES) {
+            @unlink($ziel);
+
+            throw new StoreException(Text::get('Die geladene Datei ist unerwartet gross und wird verworfen.'), 'download_too_large');
+        }
+
+        return $ziel;
+    }
+
+    /**
+     * In ein Wegwerfverzeichnis auspacken, NICHT nach Modules/.
+     *
+     * Ein Ordner unter Modules/ wird von FreeScout beim naechsten Aufruf als
+     * Modul gelesen -- ein halb ausgepackter waere dann ein halbes Modul.
+     * Darum storage/app, und der Tausch erst danach: derselbe Datentraeger,
+     * also ist die Umbenennung eine Umbenennung und kein Kopieren.
+     *
+     * @return string Pfad des Wegwerfverzeichnisses
+     */
+    private static function auspacken($zip, $version)
+    {
+        $bau = storage_path('app/lashop-neu-'.preg_replace('/[^0-9A-Za-z.\-]/', '', $version).'-'.substr(md5(uniqid('', true)), 0, 8));
+
+        if (!@mkdir($bau, 0755, true) && !is_dir($bau)) {
+            throw new StoreException(Text::get('Das Verzeichnis für die neue Fassung lässt sich nicht anlegen.'), 'staging_failed');
+        }
+
+        $archiv = new \ZipArchive();
+
+        if ($archiv->open($zip) !== true) {
+            self::wegwerfen($bau);
+
+            throw new StoreException(Text::get('Das Archiv lässt sich nicht öffnen.'), 'zip_open_failed');
+        }
+
+        $ok = $archiv->extractTo($bau);
+        $archiv->close();
+
+        if (!$ok) {
+            self::wegwerfen($bau);
+
+            throw new StoreException(Text::get('Das Archiv lässt sich nicht auspacken.'), 'zip_extract_failed');
+        }
+
+        return $bau;
+    }
+
+    /**
+     * Ist das Ausgepackte wirklich dieses Modul in dieser Fassung?
+     *
+     * Der Sinn ist nicht Misstrauen gegen die Signatur -- die ist geprueft.
+     * Der Sinn ist, einen Irrtum zu fangen: ein Paket mit falschem Kuerzel,
+     * ein Archiv ohne obersten Ordner, eine Fassung, die nicht die
+     * angekuendigte ist. Alles drei waere nach dem Tausch nicht mehr zu
+     * bemerken, weil dann die Oberflaeche fehlt, mit der man es merken
+     * wuerde.
+     *
+     * @return void
+     */
+    private static function pruefeBaum($bau, $version)
+    {
+        $ordner = $bau.'/'.self::ORDNER;
+
+        if (!is_dir($ordner)) {
+            throw new StoreException(
+                Text::get('Im Archiv fehlt der Ordner :ordner.', ['ordner' => self::ORDNER]),
+                'bad_package_shape'
+            );
+        }
+
+        $json = $ordner.'/module.json';
+
+        if (!is_file($json)) {
+            throw new StoreException(Text::get('Im Archiv fehlt die module.json.'), 'bad_package_shape');
+        }
+
+        $daten = json_decode((string) file_get_contents($json), true);
+
+        if (!is_array($daten)) {
+            throw new StoreException(Text::get('Die module.json im Archiv ist kein gültiges JSON.'), 'bad_package_shape');
+        }
+
+        $alias = isset($daten['alias']) ? (string) $daten['alias'] : '';
+
+        if ($alias !== 'lastore') {
+            throw new StoreException(
+                Text::get('Das Archiv gehört zu :alias und nicht zu diesem Modul.', ['alias' => $alias ?: '?']),
+                'wrong_package'
+            );
+        }
+
+        $drin = isset($daten['version']) ? (string) $daten['version'] : '';
+
+        if ($drin !== $version) {
+            throw new StoreException(
+                Text::get('Das Archiv enthält Fassung :drin, angekündigt war :soll.', ['drin' => $drin ?: '?', 'soll' => $version]),
+                'wrong_version'
+            );
+        }
+
+        // Die zwei Dateien, ohne die das Modul seine Aufgabe nicht mehr
+        // hat. Fehlt eine, ist das Archiv beschnitten -- und ein LaShop
+        // ohne Signaturpruefung waere schlimmer als keines.
+        foreach (['Support/PublicKeys.php', 'Support/PackageVerifier.php'] as $pflicht) {
+            if (!is_file($ordner.'/'.$pflicht)) {
+                throw new StoreException(
+                    Text::get('Im Archiv fehlt :datei.', ['datei' => $pflicht]),
+                    'bad_package_shape'
+                );
+            }
+        }
+    }
+
+    /**
+     * Der Tausch: zwei Umbenennungen.
+     *
+     * @return string Pfad des beiseitegelegten alten Stands
+     */
+    private static function tauschen($bau, $modules = null)
+    {
+        $modules = $modules === null ? base_path('Modules') : $modules;
+        $jetzt = $modules.'/'.self::ORDNER;
+
+        /*
+         * Eine Arbeitskopie wird nicht getauscht.
+         *
+         * Der Tausch ersetzt das ganze Verzeichnis. Liegt darin ein .git,
+         * verschwaende er die Versionsgeschichte und jede nicht committete
+         * Aenderung -- in der Entwicklungsumgebung ist genau das der Fall,
+         * weil dort der Quellordner eingehaengt ist. Wer dort aktualisieren
+         * will, benutzt git.
+         */
+        if (is_dir($jetzt.'/.git')) {
+            throw new StoreException(
+                Text::get('Dieses Modul ist hier eine Git-Arbeitskopie. Ein Selbstupdate würde sie ersetzen — in einer Entwicklungsumgebung wird mit git aktualisiert.'),
+                'working_copy'
+            );
+        }
+        $neu = $bau.'/'.self::ORDNER;
+        $alt = $modules.'/.'.strtolower(self::ORDNER).'-alt-'.date('Ymd-His');
+
+        if (!is_dir($jetzt)) {
+            // Kein laufender Stand: dann ist es keine Aktualisierung,
+            // sondern eine Installation. Auch gut, aber sagen wir es.
+            if (!@rename($neu, $jetzt)) {
+                throw new StoreException(Text::get('Die neue Fassung lässt sich nicht an ihren Platz legen.'), 'swap_failed');
+            }
+
+            return '';
+        }
+
+        if (!@rename($jetzt, $alt)) {
+            throw new StoreException(
+                Text::get('Der bisherige Stand lässt sich nicht beiseitelegen. Es wurde nichts verändert.'),
+                'swap_failed'
+            );
+        }
+
+        if (!@rename($neu, $jetzt)) {
+            // Zurueck. Das ist der einzige Punkt, an dem etwas fehlen
+            // koennte, und er dauert eine Umbenennung.
+            @rename($alt, $jetzt);
+
+            throw new StoreException(
+                Text::get('Die neue Fassung lässt sich nicht an ihren Platz legen. Der bisherige Stand ist zurückgelegt.'),
+                'swap_failed'
+            );
+        }
+
+        return $alt;
+    }
+
+    /**
+     * Konfigurations- und Ansichtszwischenspeicher weg.
+     *
+     * Ohne das laeuft der alte Stand weiter: ein bestehender Konfig-Cache
+     * laesst Laravel die .env gar nicht lesen, und kompilierte Ansichten
+     * bleiben liegen. Genau daran ist am 02.09.2026 ein halber Tag
+     * verlorengegangen.
+     *
+     * @return void
+     */
+    private static function raeumeZwischenspeicher()
+    {
+        @unlink(base_path('bootstrap/cache/config.php'));
+
+        foreach ((array) @glob(storage_path('framework/views/*.php')) as $datei) {
+            @unlink($datei);
+        }
+    }
+
+    /**
+     * Alte Staende aufraeumen -- den letzten behalten.
+     *
+     * Einen zu behalten ist Absicht: wer nach einem Update etwas vermisst,
+     * hat den Vorgaenger noch auf der Platte und braucht kein Archiv.
+     *
+     * @return void
+     */
+    private static function raeumeAlteStaende($behalten)
+    {
+        $staende = (array) @glob(base_path('Modules/.'.strtolower(self::ORDNER).'-alt-*'), GLOB_ONLYDIR);
+        sort($staende);
+
+        foreach ($staende as $stand) {
+            if ($stand !== $behalten && count($staende) > 1) {
+                self::wegwerfen($stand);
+                array_shift($staende);
+            }
+        }
+    }
+
+    /** @return void */
+    private static function wegwerfen($pfad)
+    {
+        if (!is_dir($pfad)) {
+            @unlink($pfad);
+
+            return;
+        }
+
+        $eintraege = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($pfad, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($eintraege as $eintrag) {
+            $eintrag->isDir() ? @rmdir($eintrag->getPathname()) : @unlink($eintrag->getPathname());
+        }
+
+        @rmdir($pfad);
+    }
+}

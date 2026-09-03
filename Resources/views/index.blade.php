@@ -11,6 +11,29 @@
 @endsection
 
 @section('content')
+
+    {{-- Der Hinweis auf eine neue Fassung von LaShop selbst.
+
+         Er erscheint von SELBST, sobald etwas bereitliegt -- das ist der ganze
+         Sinn. Ein Weg, den man suchen muss, wird einmal gegangen und dann nie
+         wieder; ein Modul, das nie aktualisiert wird, bekommt keine
+         Sicherheitskorrektur und lehnt nach einem Schluesselwechsel jedes
+         Paket ab.
+
+         Kein eigener Netzaufruf hier: der Controller hat den Befund
+         hinterlegt, die Ansicht liest ihn nur. --}}
+    @if (!empty($selbstNeu))
+        <div class="alert alert-info">
+            <strong>{{ __('Für LaShop liegt Fassung :v bereit.', ['v' => $selbstNeu]) }}</strong>
+            <form method="POST" action="{{ route('lastore.self_update') }}" class="form-inline" style="display:inline-block;margin-left:10px">
+                {{ csrf_field() }}
+                <button type="submit" class="btn btn-primary btn-sm">{{ __('Jetzt aktualisieren') }}</button>
+            </form>
+            <div class="text-muted" style="margin-top:6px">
+                <small>{{ __('Das Paket wird geprüft, bevor es ausgepackt wird: erst die Signatur, dann die Prüfsumme. Der bisherige Stand bleibt als Sicherung liegen.') }}</small>
+            </div>
+        </div>
+    @endif
     <div class="section-heading">
         {{ __('Store') }}
     </div>

@@ -95,6 +95,50 @@ class PackageVerifier
         // in genau EINER Stelle steht. Vorher pruefte der Parameterweg sie
         // nicht - und der Test, der die Trennung beweisen sollte, ging
         // deshalb durch.
+        return self::checkSignature($expectedHash, $signature, $kid, $keys);
+    }
+
+    /**
+     * NUR die Signatur pruefen, ohne Datei.
+     *
+     * Der Sinn: die Signatur liegt ueber dem HASH, und den nennt der Server
+     * schon in seiner Antwort. Sie laesst sich also pruefen, BEVOR ein Byte
+     * heruntergeladen ist -- rein oertlich, ohne Netz.
+     *
+     * Das ist bei check() nicht so gewesen: dort kam erst der Hashvergleich,
+     * also musste die Datei erst da sein. Eine gefaelschte Antwort kostete
+     * damit einen vollen Download, und die Adresse, von der geladen wurde,
+     * stammte aus derselben gefaelschten Antwort. Nichts Ungeprueftes wurde
+     * je entpackt -- aber fruehes Scheitern ist besser als spaetes.
+     *
+     * Die Selbstaktualisierung von LaShop benutzt genau das: erst pruefen,
+     * dann laden.
+     *
+     * @param string      $expectedHash
+     * @param string      $signature
+     * @param string      $kid
+     * @param array|null  $keys
+     *
+     * @return self
+     */
+    public static function checkSignature($expectedHash, $signature, $kid, ?array $keys = null)
+    {
+        $expectedHash = strtolower(trim((string) $expectedHash));
+
+        if ($expectedHash === '') {
+            return new self(self::HASH_MISMATCH);
+        }
+
+        if (!is_string($signature) || trim($signature) === '') {
+            return new self(self::MISSING_SIGNATURE);
+        }
+
+        // Die Schluessel als Parameter und NICHT ueber einen globalen
+        // Umschalter: eine statische Variable, die Tests umbiegen, ist eine
+        // Variable, die auch im Betrieb umgebogen werden kann.
+        //
+        // Beide Wege laufen durch PublicKeys::pick(), damit die Zweckpruefung
+        // in genau EINER Stelle steht.
         $key = $keys === null
             ? PublicKeys::find((string) $kid, 'package')
             : PublicKeys::pick($keys, $kid, 'package');

@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use Modules\LaStore\Console\AdoptCommand;
 use Modules\LaStore\Console\ResetInstallationCommand;
 use Modules\LaStore\Console\UpdateCommand;
+use Modules\LaStore\Console\SelfUpdateCommand;
 use Modules\LaStore\Console\SyncCommand;
 
 class LaStoreServiceProvider extends ServiceProvider
@@ -59,6 +60,7 @@ class LaStoreServiceProvider extends ServiceProvider
             ResetInstallationCommand::class,
             AdoptCommand::class,
             UpdateCommand::class,
+            SelfUpdateCommand::class,
         ]);
     }
 
@@ -94,7 +96,31 @@ class LaStoreServiceProvider extends ServiceProvider
                  */
                 $schedule->command('lastore:update --yes')
                     ->dailyAt('03:20')->withoutOverlapping();
+
+                /*
+                 * LaShop selbst NACH den uebrigen Modulen und in einem
+                 * eigenen Lauf.
+                 *
+                 * Der Grund ist nicht Hoeflichkeit: dieser Befehl tauscht
+                 * das Modul aus, in dem er steht. Waere er Teil desselben
+                 * Durchlaufs, wechselte mitten darin der Boden -- danach
+                 * findet der Autoloader nichts mehr. Als eigener Aufruf um
+                 * 03:40 ist es die letzte Handlung eines eigenen Prozesses.
+                 */
+                $schedule->command('lastore:self-update --yes')
+                    ->dailyAt('03:40')->withoutOverlapping();
             }
+
+            /*
+             * Nachsehen taeglich, unabhaengig vom Autopilot: nur so kann die
+             * Oberflaeche "Fassung X liegt bereit" melden, ohne dass jemand
+             * eingeschaltet hat, dass ueber Nacht getauscht wird. Die Sorge
+             * war ja, dass ein Modul einmal installiert und nie mehr
+             * angesehen wird -- ein Hinweis, der von selbst erscheint, ist
+             * dagegen das Mindeste.
+             */
+            $schedule->command('lastore:self-update --pruefen')
+                ->dailyAt('05:20')->withoutOverlapping();
 
             return $schedule;
         });

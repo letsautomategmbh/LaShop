@@ -11,31 +11,6 @@ use Modules\LaStore\Support\LicenseToken;
 
 class LicenseController extends Controller
 {
-    public function index()
-    {
-        $this->authorizeAdmin();
-
-        $service = new LicenseService();
-        $installation = $service->installation();
-        $licenses = License::orderBy('product_alias')->get();
-
-        // Fuer die Anzeige jede Lizenz noch einmal lokal pruefen. Das kostet
-        // nichts (gemessene 0,06 ms je Pruefung) und zeigt den WIRKLICHEN
-        // Zustand statt der gespiegelten Spalten.
-        $verified = [];
-
-        foreach ($licenses as $license) {
-            $verified[$license->product_alias] = $license->verify($installation);
-        }
-
-        return view('lastore::licenses', [
-            'licenses'     => $licenses,
-            'verified'     => $verified,
-            'installation' => $installation,
-            'badges'       => License::statusBadges(),
-        ]);
-    }
-
     public function activate(Request $request)
     {
         $this->authorizeAdmin();

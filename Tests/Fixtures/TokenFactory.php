@@ -20,6 +20,42 @@ class TokenFactory
     }
 
     /**
+     * Die oeffentlichen Haelften der Fixture-Schluessel, im Format von
+     * PublicKeys::all().
+     *
+     * Wird aus den privaten Schluesseln ABGELEITET und nicht daneben
+     * abgelegt: eine zweite Datei koennte veralten, und ein Test, der gegen
+     * einen alten oeffentlichen Schluessel prueft, schlaegt aus dem falschen
+     * Grund fehl.
+     *
+     * 'use' => 'token', weil das genau die Rolle ist, die diese Schluessel in
+     * den Tests spielen. Vorher lagen la1/la2 mit 'both' in
+     * PublicKeys::all() - also in jeder ausgelieferten Fassung, obwohl ihre
+     * privaten Haelften auf Entwicklungsrechnern liegen.
+     *
+     * @param string $zweck
+     *
+     * @return array
+     */
+    public static function publicKeys($zweck = 'token')
+    {
+        $keys = array();
+
+        foreach (array('la1', 'la2') as $kid) {
+            $privat = openssl_pkey_get_private(file_get_contents(self::keyPath($kid)));
+            $details = openssl_pkey_get_details($privat);
+
+            $keys[$kid] = array(
+                'algo' => 'RS256',
+                'use'  => $zweck,
+                'pem'  => $details['key'],
+            );
+        }
+
+        return $keys;
+    }
+
+    /**
      * @param array  $claims
      * @param string $kid
      *

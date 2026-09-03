@@ -11,6 +11,7 @@ use Modules\LaStore\Services\PackageInstaller;
 use Modules\LaStore\Services\LicenseService;
 use Modules\LaStore\Services\StoreException;
 use Modules\LaStore\Support\InstalledModules;
+use Modules\LaStore\Support\SelfUpdater;
 
 class StoreController extends Controller
 {
@@ -41,6 +42,35 @@ class StoreController extends Controller
             }
         }
 
+        /*
+         * Beilaeufig nachsehen, ob LaShop selbst etwas Neues hat -- hoechstens
+         * einmal am Tag.
+         *
+         * Warum hier und nicht nur im naechtlichen Lauf: der braucht einen
+         * eingerichteten Cron. Wo keiner laeuft, erschiene der Hinweis nie --
+         * und genau das war die Sorge, dass ein Modul einmal installiert und
+         * dann nie mehr angefasst wird.
+         *
+         * Der Grundsatz "kein HTTP im Seitenaufbau" gilt fuer die Seiten, die
+         * ein Bearbeiter beim Ticketlesen sieht. DIESE Seite spricht schon mit
+         * dem Server (Katalogabgleich, 15 Minuten), also ist es hier kein
+         * neuer Bruch, sondern derselbe Weg.
+         *
+         * Scheitert es, bleibt der letzte Befund stehen. Ein Shop, der nicht
+         * antwortet, darf keine Fehlerseite ergeben.
+         */
+        $selbstGeprueft = (int) \Option::get('lastore.selbst_geprueft_am', 0);
+
+        if ($selbstGeprueft < time() - 86400) {
+            try {
+                SelfUpdater::pruefen();
+            } catch (\Exception $e) {
+                // Still. Der Befund von gestern ist besser als eine rote Seite.
+            }
+
+            \Option::set('lastore.selbst_geprueft_am', time());
+        }
+
         return view('lastore::index', [
             'inventory'    => InstalledModules::inventory(),
             'adoptable'    => InstalledModules::adoptable(),
@@ -55,6 +85,7 @@ class StoreController extends Controller
             'installation' => $installation,
             'error'        => $error,
             'transport'    => config('lastore.transport'),
+            'selbstNeu'    => SelfUpdater::hinterlegt(),
         ]);
     }
 
@@ -99,6 +130,42 @@ class StoreController extends Controller
      * Unterschied: FreeScout vertraut beim Download auf TLS, wir pruefen
      * zusaetzlich die Signatur des Pakets.
      */
+    /**
+     * LaShop selbst aktualisieren.
+     *
+     * Im Web und nicht nur auf der Kommandozeile, weil genau das die Sorge
+     * war: was von Hand geht, wird einmal gemacht und dann nie wieder. Ein
+     * Knopf, der von selbst erscheint, sobald etwas bereitliegt, ist der
+     * Unterschied zwischen einem aktuellen und einem stehengebliebenen
+     * Vertrauensfundament.
+     *
+     * Nach dem Tausch wird nur noch umgeleitet: alles, was diese Antwort
+     * braucht, ist bereits geladen. Der Selbstaktualisierer selbst macht nach
+     * dem Tausch ausschliesslich Dateiarbeit.
+     */
+    public function selfUpdate(Request $request)
+    {
+        $this->authorizeAdmin();
+
+        try {
+            $ergebnis = SelfUpdater::aktualisieren();
+        } catch (\Exception $e) {
+            \Session::flash('flash_error_floating', $e->getMessage());
+
+            return redirect()->back();
+        }
+
+        if ($ergebnis['status'] === SelfUpdater::AKTUELL) {
+            \Session::flash('flash_success_floating', __('LaShop ist aktuell.'));
+
+            return redirect()->back();
+        }
+
+        \Session::flash('flash_success_floating', __('LaShop läuft jetzt in Fassung :v.', ['v' => $ergebnis['version']]));
+
+        return redirect()->route('lastore.index');
+    }
+
     public function install(Request $request)
     {
         $this->authorizeAdmin();
