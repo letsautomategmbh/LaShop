@@ -84,50 +84,60 @@
         </p>
     </div>
 
-        {{-- Was nur auf DIESEM Server geht.
+        {{-- Der Offline-Weg als Popup, aufgerufen aus der Werkzeugleiste.
 
-             Lizenzen verwaltet der Kunde im Portal - umziehen, Laufzeit sehen,
-             die Offline-Lizenzdatei erzeugen. Zwei Dinge kann das Portal aber
-             nicht: eine Datei auf diesen Server legen und die Prüfung hier
-             anstossen. Nur das steht deshalb noch im Modul, und zugeklappt,
-             weil es selten gebraucht wird. --}}
-        <details class="margin-top">
-            <summary style="cursor:pointer">{{ __('Server ohne Internetverbindung') }}</summary>
+             Vorher stand er zugeklappt am Fuss der Seite, unter der
+             Modulliste. Das war zweimal falsch: er sah aus wie ein Anhang,
+             obwohl er eine Handlung ist, und seine Aufschrift "Server ohne
+             Internetverbindung" las sich als Befund über diesen Server statt
+             als Frage.
 
-            <div class="panel panel-default margin-top">
-                <div class="panel-body">
-                    <p class="text-muted">
-                        {{ __('Das Kundenportal erzeugt aus der Kennung dieses Servers eine signierte Lizenzdatei. Diese hier hochladen.') }}
-                    </p>
+             Bootstraps eigenes Modal, kein eigenes Javascript: FreeScout
+             bringt es mit, und der Knopf braucht nur data-toggle. --}}
+        <div class="modal fade" id="lastore-offline" tabindex="-1" role="dialog"
+             aria-labelledby="lastore-offline-titel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Schliessen') }}">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="lastore-offline-titel">{{ __('Lizenz ohne Internetverbindung einlesen') }}</h4>
+                    </div>
 
-                    {{-- isRegistered() und installation_id, NICHT ->uuid: die
-                         Spalte heisst installation_id, und ->uuid gibt es
-                         nicht. Mein erster Entwurf fragte danach, bekam
-                         darum immer null und hätte den Upload jedem Kunden
-                         verborgen. Die Zeile weiter unten machte es von
-                         Anfang an richtig — ich hatte sie nicht angesehen. --}}
-                    @if ($installation->isRegistered())
-                        <p>
-                            {{ __('Kennung dieses Servers') }}:
-                            <code class="mono">{{ $installation->installation_id }}</code>
-                        </p>
-
-                        <form method="POST" action="{{ route('lastore.licenses.offline') }}" enctype="multipart/form-data" class="form-inline">
-                            {{ csrf_field() }}
-                            <input type="file" name="license_file" class="form-control input-sm" accept=".txt,.lic,text/plain" required>
-                            <button type="submit" class="btn btn-default btn-sm">{{ __('Lizenzdatei einlesen') }}</button>
-                        </form>
-                    @else
-                        {{-- Ohne Kennung gibt es nichts zu erzeugen. Die Kennung
-                             entsteht bei der ersten Anmeldung am Shop — vorher ist
-                             der Offline-Weg gar nicht gangbar, und ein leeres
-                             Feld hier wäre eine Einladung zum Rätseln. --}}
+                    <div class="modal-body">
                         <p class="text-muted">
-                            {{ __('Dieser Server ist noch nicht am Shop angemeldet. Die Kennung entsteht mit der ersten Lizenz — danach steht sie hier.') }}
+                            {{ __('Das Kundenportal erzeugt aus der Kennung dieses Servers eine signierte Lizenzdatei. Diese hier hochladen.') }}
                         </p>
-                    @endif
+
+                        {{-- isRegistered() und installation_id, NICHT ->uuid: die
+                             Spalte heisst installation_id, und ->uuid gibt es
+                             nicht. Mein erster Entwurf fragte danach, bekam
+                             darum immer null und hätte den Upload jedem Kunden
+                             verborgen. --}}
+                        @if ($installation->isRegistered())
+                            <p>
+                                {{ __('Kennung dieses Servers') }}:
+                                <code class="mono">{{ $installation->installation_id }}</code>
+                            </p>
+
+                            <form method="POST" action="{{ route('lastore.licenses.offline') }}" enctype="multipart/form-data">
+                                {{ csrf_field() }}
+                                <input type="file" name="license_file" class="form-control input-sm" accept=".txt,.lic,text/plain" required>
+                                <button type="submit" class="btn btn-primary btn-sm margin-top">{{ __('Lizenzdatei einlesen') }}</button>
+                            </form>
+                        @else
+                            {{-- Ohne Kennung gibt es nichts zu erzeugen. Die Kennung
+                                 entsteht bei der ersten Anmeldung am Shop — vorher ist
+                                 der Offline-Weg gar nicht gangbar, und ein leeres
+                                 Feld hier wäre eine Einladung zum Rätseln. --}}
+                            <p class="text-muted">
+                                {{ __('Dieser Server ist noch nicht am Shop angemeldet. Die Kennung entsteht mit der ersten Lizenz — danach steht sie hier.') }}
+                            </p>
+                        @endif
+                    </div>
                 </div>
             </div>
-        </details>
+        </div>
 
 @endsection
