@@ -94,6 +94,45 @@
 
              Bootstraps eigenes Modal, kein eigenes Javascript: FreeScout
              bringt es mit, und der Knopf braucht nur data-toggle. --}}
+
+@endsection
+
+{{-- Das Popup gehoert an das ENDE des <body>, nicht in den Inhalt.
+
+     Der Grund ist eine Stapelfalle: ein fest positioniertes Element gilt mit
+     seinem z-index nur INNERHALB des naechsten Elternteils, das selbst einen
+     Stapelzusammenhang aufmacht. FreeScouts Inhaltsbehaelter tut das, und die
+     Kopfleiste (z-index 1000, drei Reihen, 203 Pixel hoch) lag damit ueber
+     dem Popup -- der Titel war halb verdeckt, egal welchen z-index das Modal
+     selbst trug. Auch 10050 half nichts.
+
+     `body_bottom` ist der Haken im Layout des Kerns, direkt vor den Skripten
+     und ausserhalb aller Behaelter. Dort gilt der z-index gegen alles. --}}
+@section('body_bottom')
+        {{-- Eigene Stile, knapp und nur fuer dieses Fenster:
+
+             z-index ueber ALLES. FreeScout haelt ein festes Element mit 9999
+             auf jeder Seite (der Behaelter fuer die schwebenden Meldungen).
+             Es ist null Pixel hoch und stoert nicht, aber ein Popup, das
+             darunter liegen KANN, ist eine Wanze, die man nur bei bestimmten
+             Fenstergroessen sieht. Darum 10050 statt Bootstraps 1050.
+
+             Abstand nach oben, damit der Titel nicht an der Kopfleiste klebt
+             -- Andre sah ihn dort halb verdeckt.
+
+             Und eine Hoehengrenze mit eigenem Rollbereich: bei kleinem Fenster
+             schob der Absendeknopf sonst aus dem Bild, und ein Knopf, den man
+             nicht erreicht, ist kein Knopf. --}}
+        <style>
+            #lastore-offline { z-index: 10050; }
+            #lastore-offline + .modal-backdrop, .modal-backdrop.lastore { z-index: 10040; }
+            #lastore-offline .modal-dialog { margin-top: 60px; }
+            #lastore-offline .modal-body { max-height: calc(100vh - 220px); overflow-y: auto; }
+            @media (max-height: 600px) {
+                #lastore-offline .modal-dialog { margin-top: 20px; }
+            }
+        </style>
+
         <div class="modal fade" id="lastore-offline" tabindex="-1" role="dialog"
              aria-labelledby="lastore-offline-titel">
             <div class="modal-dialog" role="document">
@@ -139,5 +178,4 @@
                 </div>
             </div>
         </div>
-
 @endsection
