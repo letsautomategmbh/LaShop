@@ -52,6 +52,30 @@
             </div>
         </div>
     @endif
+
+    {{-- Was der Shop beim letzten Heartbeat gesagt hat.
+
+         Der wichtigste dieser Hinweise ist "12 Nutzer, lizenziert sind 5".
+         Der Server SPERRT dafuer nicht -- Sperren bestraft genau die Kunden,
+         die wachsen -- er sagt es. Nur landete das Gesagte bis zum
+         04.09.2026 ausschliesslich in der Ausgabe von lastore:sync, also auf
+         einer Kommandozeile, die nachts laeuft. Wer keinen Serverzugang hat,
+         erfuhr es nie.
+
+         Ueber dem Katalog und nicht darunter: es ist eine Aufforderung zu
+         handeln, keine Fussnote. Kein Netzaufruf hier -- der naechtliche
+         Heartbeat hat es hinterlegt, die Ansicht liest nur. --}}
+    @foreach ($hinweise as $hinweis)
+        <div class="alert alert-{{ $hinweis['level'] === 'warning' ? 'warning' : 'info' }}">
+            {{ $hinweis['text'] }}
+            @if ($hinweis['level'] === 'warning')
+                <div class="text-muted" style="margin-top:6px">
+                    <small>{{ __('Es wird nichts gesperrt. Bitte im Kundenportal aufstocken — sonst kommt die Differenz auf die nächste Rechnung.') }}</small>
+                </div>
+            @endif
+        </div>
+    @endforeach
+
     <div class="section-heading">
         {{ __('Store') }}
     </div>

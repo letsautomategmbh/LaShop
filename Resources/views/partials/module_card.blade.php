@@ -52,7 +52,12 @@
                      übersetzt, sondern landet als Text im HTML — der Ausdruck
                      stand sichtbar auf der Seite, und nichts war rot. --}}
                 | <span class="nowrap{{ $ablauf['abgelaufen'] ? ' text-danger' : '' }}">
-                    @if ($ablauf['art'] === 'nutzung')
+                    @if ($ablauf['art'] === 'testphase')
+                        {{-- Eigene Beschriftung: der Kunde hat nichts gekauft,
+                             und das soll auf der Karte stehen. "Nutzbar bis"
+                             liest sich wie ein Vertrag. --}}
+                        {{ $ablauf['abgelaufen'] ? __('Testphase endete') : __('Testphase bis') }}
+                    @elseif ($ablauf['art'] === 'nutzung')
                         {{ $ablauf['abgelaufen'] ? __('Nutzung endete') : __('Nutzbar bis') }}
                     @else
                         {{-- „Support bis", nicht „Updates bis": an dem Datum

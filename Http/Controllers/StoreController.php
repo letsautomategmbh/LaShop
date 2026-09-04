@@ -11,6 +11,7 @@ use Modules\LaStore\Services\PackageInstaller;
 use Modules\LaStore\Services\LicenseService;
 use Modules\LaStore\Services\StoreClient;
 use Modules\LaStore\Services\StoreException;
+use Modules\LaStore\Support\Hinweise;
 use Modules\LaStore\Support\InstalledModules;
 use Modules\LaStore\Support\ModulAnmeldung;
 use Modules\LaStore\Support\SelfUpdater;
@@ -91,6 +92,7 @@ class StoreController extends Controller
             'installation' => $installation,
             'error'        => $error,
             'transport'    => config('lastore.transport'),
+            'hinweise'     => Hinweise::offen(),
             'selbstNeu'    => SelfUpdater::hinterlegt(),
             'selbstNotiz'  => SelfUpdater::hinterlegteNotiz(),
         ]);

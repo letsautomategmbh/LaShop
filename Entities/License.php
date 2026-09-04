@@ -43,6 +43,16 @@ class License extends Model
      */
     public function ablaufDatum()
     {
+        /*
+         * Eine Testphase ist eine eigene Art, obwohl sie sich wie ein Abo
+         * verhaelt (valid_until begrenzt die Nutzung). Der Unterschied ist
+         * nicht technisch, sondern der wichtigste, den der Kunde kennen
+         * muss: er hat nichts gekauft. "Nutzbar bis 18.09." liest sich wie
+         * ein Vertrag; "Testphase bis 18.09." sagt, dass danach eine
+         * Entscheidung faellig ist.
+         */
+        $testphase = $this->license_type === 'trial';
+
         $istAbo = $this->license_type !== null
             ? $this->license_type !== 'one_time'
             : $this->valid_until !== null;
@@ -50,7 +60,7 @@ class License extends Model
         $datum = $istAbo ? $this->valid_until : $this->updates_until;
 
         return array(
-            'art'        => $istAbo ? 'nutzung' : 'updates',
+            'art'        => $testphase ? 'testphase' : ($istAbo ? 'nutzung' : 'updates'),
             'datum'      => $datum,
             'abgelaufen' => $datum !== null && $datum->isPast(),
         );

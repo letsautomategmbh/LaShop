@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Modules\LaStore\Entities\CatalogEntry;
 use Modules\LaStore\Services\LicenseService;
 use Modules\LaStore\Services\StoreException;
+use Modules\LaStore\Support\Hinweise;
 
 /**
  * Ein Einstiegspunkt fuer alles Laufende: Heartbeat, Lizenzpruefung,
@@ -110,6 +111,23 @@ class SyncCommand extends Command
             }
 
             $installation->save();
+
+            /*
+             * Festhalten, nicht nur ausgeben.
+             *
+             * Bis zum 04.09.2026 landeten die Hinweise ausschliesslich in der
+             * Ausgabe dieses Befehls -- also auf einer Kommandozeile, die
+             * nachts läuft. Der wichtigste davon ist "12 Nutzer, lizenziert
+             * sind 5", und den erfuhr ein Kunde ohne Serverzugang nie. Ein
+             * Hinweis, den niemand sieht, ist kein Hinweis.
+             *
+             * Gemerkt wird auch die LEERE Liste: verschwindet eine
+             * Überbelegung, schickt der Shop keinen Hinweis mehr, und der
+             * alte muss weg.
+             */
+            Hinweise::merke(
+                isset($response['notices']) && is_array($response['notices']) ? $response['notices'] : array()
+            );
 
             foreach (isset($response['notices']) ? $response['notices'] : [] as $notice) {
                 $this->warn('  Hinweis vom Shop: '.(isset($notice['text']) ? $notice['text'] : ''));
