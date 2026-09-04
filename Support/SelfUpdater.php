@@ -46,6 +46,16 @@ class SelfUpdater
     /** Der Ordner des Moduls in Modules/ -- gleich dem Namensraum. */
     const ORDNER = 'LaStore';
 
+    /**
+     * Der Alias aus module.json -- klein, und NICHT der Modulname.
+     *
+     * Der Name ist "LaShop", der Ordner "LaStore", der Alias "lastore". Drei
+     * verschiedene Zeichenketten fuer dasselbe Modul, und jede Kern-Funktion
+     * will eine andere davon. Genau daran ist \Module::find() nach der
+     * Umbenennung gescheitert. Darum steht der Alias hier EINMAL.
+     */
+    const ALIAS = 'lastore';
+
     /** Grenze fuer den Download. Dieses Modul ist klein; 30 MiB sind schon viel. */
     const MAX_BYTES = 31457280;
 
@@ -158,6 +168,13 @@ class SelfUpdater
             @unlink($zip);
         }
 
+        // Diese Klasse wird erst NACH dem Tausch gebraucht -- und die Regel
+        // oben sagt, dass dann keine mehr geladen werden darf. Also jetzt.
+        // (Sie liegt danach zwar wieder am selben Pfad, aber sich darauf zu
+        // verlassen heisst, den einen Fall zu verlieren, in dem der neue
+        // Stand sie nicht mitbringt.)
+        class_exists(ModulAnmeldung::class);
+
         try {
             // ── 5. Nachsehen, ob das Ausgepackte plausibel ist ────────
             self::pruefeBaum($bau, (string) $meldung['version']);
@@ -179,13 +196,21 @@ class SelfUpdater
         \Option::set(self::MERKER_NOTIZ, '');
 
         self::raeumeZwischenspeicher();
+
+        // ── 8. Beim Kern anmelden: Wanderungen, Symlink, Cache ────────
+        // Dateien tauschen genuegt NICHT -- weder bei uns noch bei
+        // FreeScouts eigenem Knopf. Die Belege stehen in ModulAnmeldung.
+        // Nach dem Raeumen, damit der Befehl die neue module.json sieht.
+        $anmeldung = ModulAnmeldung::anmelden(self::ALIAS);
+
         self::raeumeAlteStaende($alt);
 
         return [
-            'status'  => self::FERTIG,
-            'version' => (string) $meldung['version'],
-            'jetzt'   => $bericht['jetzt'],
-            'alt'     => $alt,
+            'status'    => self::FERTIG,
+            'version'   => (string) $meldung['version'],
+            'jetzt'     => $bericht['jetzt'],
+            'alt'       => $alt,
+            'anmeldung' => $anmeldung,
         ];
     }
 
@@ -218,6 +243,16 @@ class SelfUpdater
     public static function hinterlegteNotiz()
     {
         return self::hinterlegt() === '' ? '' : (string) \Option::get(self::MERKER_NOTIZ, '');
+    }
+
+    /**
+     * Der Befehl von Hand, falls das Anmelden scheitert.
+     *
+     * @return string
+     */
+    public static function anmeldebefehl()
+    {
+        return ModulAnmeldung::befehl(self::ALIAS);
     }
 
     /** @return void */
@@ -355,7 +390,7 @@ class SelfUpdater
 
         $alias = isset($daten['alias']) ? (string) $daten['alias'] : '';
 
-        if ($alias !== 'lastore') {
+        if ($alias !== self::ALIAS) {
             throw new StoreException(
                 Text::get('Das Archiv gehört zu :alias und nicht zu diesem Modul.', ['alias' => $alias ?: '?']),
                 'wrong_package'

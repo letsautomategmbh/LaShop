@@ -74,6 +74,22 @@ class SelfUpdateCommand extends Command
 
         $this->line('  <comment>Konfigurations- und Ansichtszwischenspeicher geleert.</>');
 
+        // Der Tausch ist nur die halbe Arbeit: ohne freescout:module-install
+        // laufen die Wanderungen des neuen Standes nie. Scheitert das, ist
+        // der Code neu und die Datenbank alt -- das muss der Mensch sehen.
+        $anmeldung = isset($ergebnis['anmeldung']) ? $ergebnis['anmeldung'] : null;
+
+        if ($anmeldung && !$anmeldung['ok']) {
+            $this->error('  Beim Kern anmelden ist gescheitert: '.$anmeldung['fehler']);
+            $this->warn('  Bitte von Hand: '.SelfUpdater::anmeldebefehl());
+
+            return 1;
+        }
+
+        if ($anmeldung) {
+            $this->line('  <comment>Wanderungen gelaufen, Symlink gesetzt, Cache geleert.</>');
+        }
+
         return 0;
     }
 }

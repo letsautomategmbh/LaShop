@@ -9,8 +9,10 @@ use Modules\LaStore\Entities\License;
 use Illuminate\Http\Request;
 use Modules\LaStore\Services\PackageInstaller;
 use Modules\LaStore\Services\LicenseService;
+use Modules\LaStore\Services\StoreClient;
 use Modules\LaStore\Services\StoreException;
 use Modules\LaStore\Support\InstalledModules;
+use Modules\LaStore\Support\ModulAnmeldung;
 use Modules\LaStore\Support\SelfUpdater;
 
 class StoreController extends Controller
@@ -71,6 +73,8 @@ class StoreController extends Controller
             \Option::set('lastore.selbst_geprueft_am', time());
         }
 
+        $this->zieheNach();
+
         return view('lastore::index', [
             'inventory'    => InstalledModules::inventory(),
             'adoptable'    => InstalledModules::adoptable(),
@@ -88,6 +92,51 @@ class StoreController extends Controller
             'selbstNeu'    => SelfUpdater::hinterlegt(),
             'selbstNotiz'  => SelfUpdater::hinterlegteNotiz(),
         ]);
+    }
+
+    /**
+     * Nachziehen, wenn die laufende Fassung nie beim Kern angemeldet wurde.
+     *
+     * **Der Grund, und er ist unangenehm.** Eine Reparatur, die IM
+     * Aktualisierungsweg sitzt, greift erst eine Fassung spaeter -- der
+     * Tausch wird immer vom ALTEN Code ausgefuehrt. Genau das ist bei 1.0.8
+     * passiert (der Modul-Cache blieb stehen) und waere hier wieder
+     * passiert: 1.0.9 tauscht auf 1.2.0 und meldet nicht an, weil 1.0.9 das
+     * noch nicht kann.
+     *
+     * Darum steht die Reparatur auch HIER, im neuen Stand: er sieht beim
+     * ersten Aufruf, dass unter seiner Fassung noch nie angemeldet wurde,
+     * und holt es nach. Damit heilt sich jeder Weg selbst -- unser
+     * Aktualisierer, FreeScouts eigener, und ein von Hand entpacktes Archiv.
+     *
+     * Hoechstens einmal je Fassung: der Merker traegt die Fassung, nicht ein
+     * Ja/Nein. Ein Ja/Nein waere nach dem naechsten Update wieder falsch.
+     *
+     * @return void
+     */
+    protected function zieheNach()
+    {
+        $laeuft = StoreClient::clientVersion();
+
+        if ($laeuft === '' || $laeuft === \Option::get('lastore.angemeldet_fassung', '')) {
+            return;
+        }
+
+        $anmeldung = ModulAnmeldung::anmelden(SelfUpdater::ALIAS);
+
+        if (!$anmeldung['ok']) {
+            // Nicht merken, wenn es nicht geklappt hat -- beim naechsten
+            // Aufruf wird es wieder versucht. Und der Mensch soll es sehen:
+            // neuer Code auf alter Datenbank ist die gefaehrlichere Lage.
+            \Session::flash('flash_error_unescaped', __(
+                'LaShop :v ist installiert, aber die Datenbank ist nicht nachgezogen. Bitte auf dem Server ausführen: :befehl',
+                ['v' => $laeuft, 'befehl' => '<code>'.e(SelfUpdater::anmeldebefehl()).'</code>']
+            ));
+
+            return;
+        }
+
+        \Option::set('lastore.angemeldet_fassung', $laeuft);
     }
 
     /**
@@ -160,6 +209,24 @@ class StoreController extends Controller
             \Session::flash('flash_success_floating', __('LaShop ist aktuell.'));
 
             return redirect()->back();
+        }
+
+        // Der Tausch hat geklappt -- das Anmelden beim Kern kann trotzdem
+        // gescheitert sein. Dann liegt neuer Code auf einer alten Datenbank,
+        // und das ist keine Erfolgsmeldung, sondern eine Aufgabe.
+        $anmeldung = isset($ergebnis['anmeldung']) ? $ergebnis['anmeldung'] : null;
+
+        if ($anmeldung && !$anmeldung['ok']) {
+            \Session::flash('flash_error_unescaped', __(
+                'LaShop läuft jetzt in Fassung :v, aber die Datenbank ist nicht nachgezogen: :fehler Bitte auf dem Server ausführen: :befehl',
+                [
+                    'v'      => $ergebnis['version'],
+                    'fehler' => e($anmeldung['fehler']),
+                    'befehl' => '<code>'.e(SelfUpdater::anmeldebefehl()).'</code>',
+                ]
+            ));
+
+            return redirect()->route('lastore.index');
         }
 
         \Session::flash('flash_success_floating', __('LaShop läuft jetzt in Fassung :v.', ['v' => $ergebnis['version']]));

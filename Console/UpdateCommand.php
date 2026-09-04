@@ -7,6 +7,7 @@ use Modules\LaStore\Entities\License;
 use Modules\LaStore\Services\PackageInstaller;
 use Modules\LaStore\Services\StoreException;
 use Modules\LaStore\Support\InstalledModules;
+use Modules\LaStore\Support\ModulAnmeldung;
 
 /**
  * Module aktualisieren - mit Pruefung der Signatur.
@@ -47,6 +48,7 @@ class UpdateCommand extends Command
         $installiert = $this->installierteFassungen();
         $fehler = 0;
         $getan = 0;
+        $offen = 0;
 
         foreach ($aliase as $a) {
             $this->line('');
@@ -119,24 +121,46 @@ class UpdateCommand extends Command
                 $this->line('  <comment>bisheriger Stand: '.basename($ergebnis['backup']).'</>');
             }
 
+            /*
+             * Hier stand einmal nur ein Hinweis, der Mensch solle danach
+             * migrate laufen lassen. Ein Hinweis ist keine Handlung: er wird
+             * gelesen, genickt und nicht ausgefuehrt. Auf der Produktion lag
+             * darum eine Wanderung ungelaufen auf der Platte, waehrend der
+             * Code, der ihre Spalte schreibt, schon lief.
+             */
+            $anmeldung = ModulAnmeldung::anmelden($a);
+
+            if ($anmeldung['ok']) {
+                $this->line('  <comment>angemeldet: Wanderungen, Symlink, Cache</>');
+            } else {
+                $this->error('  Anmelden beim Kern gescheitert: '.$anmeldung['fehler']);
+                $this->warn('  Bitte von Hand: '.ModulAnmeldung::befehl($a));
+                $offen++;
+            }
+
             $getan++;
         }
 
         $this->line('');
 
         if ($getan > 0) {
-            $this->warn('FreeScout lädt die neuen Fassungen beim nächsten Aufruf. Danach:');
-            $this->warn('  php artisan migrate --force');
-            $this->warn('  php artisan freescout:clear-cache');
+            $this->info($getan.' Modul(e) aktualisiert.');
+        }
+
+        /*
+         * Zwei Zaehler und nicht einer: "nicht aktualisiert" waere fuer ein
+         * Modul, dessen Dateien liegen und dessen Wanderung fehlt, die
+         * falsche Auskunft -- und gerade die gefaehrlichere Lage.
+         */
+        if ($offen > 0) {
+            $this->error($offen.' Modul(e) getauscht, aber NICHT angemeldet — die Wanderungen fehlen.');
         }
 
         if ($fehler > 0) {
             $this->error($fehler.' Modul(e) nicht aktualisiert.');
-
-            return 1;
         }
 
-        return 0;
+        return ($fehler > 0 || $offen > 0) ? 1 : 0;
     }
 
     /**

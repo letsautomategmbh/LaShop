@@ -17,8 +17,14 @@ use Modules\LaStore\Support\Text;
  * erst danach, und deshalb wird der alte Stand vorher beiseitegelegt.
  *
  * Was hier NICHT passiert: Migrationen, Cache leeren, Modul aktivieren. Das
- * macht FreeScout selbst beim naechsten Aufruf, und es soll nicht zwei
- * Stellen geben, die es tun.
+ * ist Sache des Aufrufers, und zwar ueber Support\ModulAnmeldung.
+ *
+ * Hier stand einmal, FreeScout mache das "selbst beim naechsten Aufruf". Das
+ * war falsch, und der Irrtum hielt, weil er nie nachgesehen wurde: der Kern
+ * ruft module:migrate ausschliesslich in freescout:module-install, und das
+ * laeuft beim AKTIVIEREN. Ein Update tauscht Dateien und sonst nichts --
+ * auch FreeScouts eigenes. Am 04.09.2026 an der Produktion aufgefallen, wo
+ * eine Wanderung nach zwei Selbstaktualisierungen ungelaufen dalag.
  */
 class PackageInstaller
 {
