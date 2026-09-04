@@ -7,7 +7,8 @@ use Modules\LaStore\Entities\License;
 
 /**
  * Bestandsaufnahme: was ist installiert, was davon steht im Katalog, was hat
- * eine Lizenz - und was traegt noch Zugangsdaten in der module.json.
+ * eine Lizenz - und was traegt in seiner module.json noch einen Updateweg an
+ * der Signatur vorbei.
  *
  * Der erste Fall, der beim Umstieg real eintritt: eine Installation, auf der
  * die Module schon laufen und sich bisher ueber ein eingebettetes Token
@@ -74,7 +75,7 @@ class InstalledModules
                 'available'   => $entry ? $entry->value('version') : null,
                 'in_catalog'  => (bool) $entry,
                 'license'     => $license,
-                'credentials' => self::credentialKind($module),
+                'unsigned_update' => self::unsignedUpdatePath($module),
                 'state'       => self::state($entry, $license),
                 /*
                  * Das Sinnbild aus der module.json des installierten Moduls -
@@ -110,7 +111,7 @@ class InstalledModules
                 'available'   => $entry->value('version'),
                 'in_catalog'  => true,
                 'license'     => $licenses->get($alias),
-                'credentials' => null,
+                'unsigned_update' => null,
                 'state'       => self::STATE_AVAILABLE,
                 'img'         => $entry->value('img'),
                 'summary'     => $entry->value('summary'),
@@ -143,21 +144,29 @@ class InstalledModules
     }
 
     /**
-     * Welche Module noch Zugangsdaten in der module.json tragen.
+     * Welche installierten Module noch einen Updateweg an der Signatur
+     * vorbei in ihrer module.json tragen.
      *
-     * Das ist der Grund, warum die Uebernahme ueberhaupt gemacht wird: erst
-     * wenn alle Kunden umgestellt sind, darf das Token aus den Repositories
-     * verschwinden. Bis dahin steht es in jeder ausgelieferten module.json -
-     * und in deren Git-Historie.
+     * Hier stand: "erst wenn alle Kunden umgestellt sind, darf das Token aus
+     * den Repositories verschwinden". Das ist am 04.09.2026 geschehen --
+     * latestVersionUrl und latestVersionZipUrl sind aus allen elf
+     * Repositories entfernt.
+     *
+     * Damit ist diese Liste nicht ueberfluessig, sondern wechselt die
+     * Richtung: sie zeigt nicht mehr, was WIR noch aufraeumen muessen,
+     * sondern was auf DIESER Installation noch aus der Zeit davor liegt. Ein
+     * Repository zu aendern aendert keine ausgelieferte Kopie. Nach dem
+     * Erneuern des Tokens zeigen diese Felder auf einen toten Weg, und der
+     * Verwalter erfaehrt es nur hier.
      *
      * @return array
      */
-    public static function withCredentials()
+    public static function withUnsignedUpdate()
     {
         $found = array();
 
         foreach (self::inventory() as $row) {
-            if ($row['credentials']) {
+            if ($row['unsigned_update']) {
                 $found[] = $row;
             }
         }
@@ -220,12 +229,42 @@ class InstalledModules
     }
 
     /**
-     * Die ART der Zugangsdaten, nie die Zugangsdaten selbst. Sie hier
-     * auszugeben hiesse, sie in Protokolle und Bildschirmfotos zu tragen.
+     * Ob die module.json eines installierten Moduls einen Updateweg AN DER
+     * SIGNATUR VORBEI traegt -- und welcher Art.
+     *
+     * **Was hier vorher stand und warum es sich geaendert hat.** Diese
+     * Methode hiess credentialKind() und suchte nach den Praefixen von
+     * GitHub-Token. Der Anlass: in elf unserer module.json standen
+     * latestVersionUrl und latestVersionZipUrl, und das Zugangstoken steckte
+     * IN der Adresse. Am 04.09.2026 sind beide Felder aus allen Repositories
+     * entfernt.
+     *
+     * Gemeldet wird seitdem der Updateweg selbst, nicht das Token darin. Drei
+     * Gruende, in dieser Reihenfolge:
+     *
+     * 1. **Es ist die richtige Sache.** Gefaehrlich ist nicht das Token,
+     *    sondern dass FreeScouts eingebauter Updater ueber diese Felder
+     *    UNGEPRUEFT nach Modules/ entpackt -- ohne Signatur, ohne Pruefsumme.
+     *    Ein Feld ohne Token ist derselbe Weg, nur unbenutzbar.
+     * 2. Der Befund bleibt nuetzlich, gerade jetzt. In einer Installation,
+     *    die vor dem 04.09.2026 eingerichtet wurde, stehen die Felder
+     *    weiterhin -- unsere Repositories zu aendern aendert keine
+     *    ausgelieferte Kopie. Nach dem Erneuern des Tokens zeigen sie auf
+     *    einen toten Weg, und diese Liste ist das Einzige, was das sagt.
+     * 3. Und nebenbei: ohne die Praefixe im Quelltext laesst sich das Modul
+     *    ueberhaupt ausliefern. Die Eingangspruefung des Shops sucht in jeder
+     *    Datei nach genau diesen Zeichenfolgen und hat 1.2.0 abgelehnt --
+     *    wegen dieser Methode. Ein Sucher, der sein Suchwort woertlich
+     *    enthaelt, findet immer sich selbst. Das ist der schwaechste der drei
+     *    Gruende und stand am Anfang; ohne die beiden anderen waere es keine
+     *    Aenderung wert gewesen, sondern ein Ausweichen.
+     *
+     * Nie der Wert selbst, nur die Art -- eine Adresse mit Zugangsdaten
+     * darin gehoert nicht in Protokolle und Bildschirmfotos.
      *
      * @return string|null
      */
-    protected static function credentialKind($module)
+    protected static function unsignedUpdatePath($module)
     {
         $path = $module->getPath().'/module.json';
 
@@ -234,9 +273,19 @@ class InstalledModules
         }
 
         $raw = (string) file_get_contents($path);
+        $json = json_decode($raw, true);
 
-        if (preg_match('/github_pat_|ghp_/', $raw)) {
-            return 'GitHub-Token';
+        if (is_array($json)) {
+            foreach (array('latestVersionUrl', 'latestVersionZipUrl') as $feld) {
+                if (!empty($json[$feld])) {
+                    // Traegt die Adresse Zugangsdaten, ist das die schaerfere
+                    // Auskunft -- und sie sagt dem Verwalter, dass beim
+                    // Aufraeumen ein Geheimnis mitgeht.
+                    return preg_match('#://[^/@\s"]+@#', (string) $json[$feld])
+                        ? 'Fremder Updateweg, mit Zugangsdaten'
+                        : 'Fremder Updateweg';
+                }
+            }
         }
 
         if (preg_match('#://[^/@\s"]+@#', $raw)) {

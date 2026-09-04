@@ -79,11 +79,13 @@ class StoreController extends Controller
             'inventory'    => InstalledModules::inventory(),
             'adoptable'    => InstalledModules::adoptable(),
             /*
-             * `credentials` wird der Ansicht nicht mehr uebergeben: die
-             * Warnung ueber Zugangsdaten in fremden module.json ist aus der
-             * Kundenansicht entfernt -- aendern kann das nur, wer die Module
-             * baut. InstalledModules::withCredentials() bleibt bestehen und
-             * ist der Einstieg, wenn die Pruefung im Betrieb gebraucht wird.
+             * `unsigned_update` wird der Ansicht nicht uebergeben: die
+             * Warnung gehoert nicht in die Kundenansicht, denn dort ist
+             * nichts zu entscheiden -- die Felder verschwinden beim naechsten
+             * Update aus dem Shop von selbst.
+             *
+             * InstalledModules::withUnsignedUpdate() bleibt bestehen und ist
+             * der Einstieg fuer den Betrieb; `lastore:adopt` zeigt es an.
              */
             'labels'       => InstalledModules::stateLabels(),
             'installation' => $installation,

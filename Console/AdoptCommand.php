@@ -90,7 +90,7 @@ class AdoptCommand extends Command
                 $row['installed'] ?: '—',
                 $row['available'] ?: '—',
                 $labels[$row['state']][1],
-                $row['credentials'] ?: '',
+                $row['unsigned_update'] ?: '',
             );
         }
 
@@ -111,20 +111,30 @@ class AdoptCommand extends Command
 
     protected function showCredentialWarning()
     {
-        $withCredentials = InstalledModules::withCredentials();
+        $offen = InstalledModules::withUnsignedUpdate();
 
-        if (!$withCredentials) {
+        if (!$offen) {
             return;
         }
 
+        /*
+         * Der Text hat am 04.09.2026 die Richtung gewechselt. Vorher hiess
+         * es "erst wenn alle Installationen uebernommen sind, darf das Token
+         * aus den Repositories weg" -- eine Aufgabe fuer UNS. Die ist
+         * erledigt: die Felder sind aus allen elf Repositories entfernt.
+         *
+         * Uebrig ist die Gegenrichtung, und die betrifft den Leser: was auf
+         * DIESER Anlage noch aus der Zeit davor liegt. Unsere Repositories zu
+         * aendern aendert keine ausgelieferte module.json.
+         */
         $this->line('');
-        $this->warn(count($withCredentials).' Modul(e) tragen noch Zugangsdaten in der module.json.');
-        $this->line('Sie stehen damit auch in der Git-Historie der jeweiligen Repositories.');
-        $this->line('Erst wenn alle Installationen übernommen sind, darf das Token dort weg:');
+        $this->warn(count($offen).' Modul(e) tragen in ihrer module.json noch einen Updateweg an der Signatur vorbei.');
+        $this->line('FreeScouts eingebauter Updater entpackt darüber UNGEPRÜFT nach Modules/.');
+        $this->line('Neue Pakete aus dem Shop haben die Felder nicht mehr; ein Update über den Shop räumt sie mit weg:');
         $this->line('');
 
-        foreach ($withCredentials as $row) {
-            $this->line(sprintf('  %-24s %s', $row['alias'], $row['credentials']));
+        foreach ($offen as $row) {
+            $this->line(sprintf('  %-24s %s', $row['alias'], $row['unsigned_update']));
         }
     }
 }
