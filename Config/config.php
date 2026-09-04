@@ -40,6 +40,15 @@ return [
      */
     'portal_url' => env('LASTORE_PORTAL_URL', 'https://shop.letsautomate.ch/portal'),
     'shop_url'   => env('LASTORE_SHOP_URL', 'https://shop.letsautomate.ch/shop'),
+    /*
+     * Ausweichadresse fuer LESENDE Aufrufe -- leer heisst AUS.
+     *
+     * Vorgabe war einmal cdn.letsautomate.ch. Die Unteradresse gibt es
+     * nicht; sie ersetzte beim Kunden die echte Fehlermeldung durch
+     * "Could not resolve host". Wer eine statische Spiegelung des Katalogs
+     * hat, traegt sie hier ein -- sonst bleibt es leer, und der Kunde
+     * erfaehrt, was wirklich los war.
+     */
     'fallback_url' => env('LASTORE_FALLBACK_URL', \Modules\LaStore\Services\Transport\HttpTransport::FALLBACK),
 
     'update_channel' => env('LASTORE_CHANNEL', 'stable'),
