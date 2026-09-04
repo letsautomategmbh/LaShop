@@ -98,6 +98,29 @@ class StaticTransport implements Transport
         $path = $this->dir.'/'.$name;
 
         if (!is_file($path)) {
+            /*
+             * Zwei verschiedene Lagen, und die Unterscheidung ist der ganze
+             * Zweck dieser Verzweigung:
+             *
+             *   EINE Antwort fehlt -> dieser Endpunkt ist nicht abgelegt
+             *   ALLE fehlen        -> es wurde nie gebaut
+             *
+             * Seit dem 04.09.2026 sind die abgelegten Antworten nicht mehr
+             * versioniert -- sie werden aus "jetzt" gebaut und waren im Repo
+             * binnen 15 Minuten abgelaufen. In einem frischen Klon ist der
+             * Ordner also leer, und "Keine abgelegte Antwort fuer
+             * catalog.json" schickt genau dann in die falsche Richtung: das
+             * klingt nach einer Luecke in den Fixtures, nicht nach einem
+             * Arbeitsschritt, den man noch nicht getan hat.
+             */
+            if (!is_dir($this->dir) || glob($this->dir.'/*.json') === array()) {
+                throw new StoreException(
+                    __('Es sind keine abgelegten Antworten gebaut. Einmal ausführen: php Modules/LaStore/Tests/Fixtures/build.php'),
+                    'fixtures_missing',
+                    404
+                );
+            }
+
             throw new StoreException(
                 __('Keine abgelegte Antwort für :file.', ['file' => $name]),
                 'not_found',

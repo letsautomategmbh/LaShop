@@ -26,3 +26,17 @@
 # blockiert bleibt. Wer spaeter versehentlich einen echten Schluessel
 # ablegt, kann ihn nicht committen.
 !Tests/Fixtures/keys/*.key
+
+# Erzeugte Antworten -- NICHT versioniert.
+#
+# Tests/Fixtures/build.php baut sie aus "jetzt": released_at, expires_at und
+# das daraus signierte token. Jeder Neubau machte darum fuenf von zwoelf
+# Dateien dreckig, und der eingecheckte Stand war binnen 15 Minuten
+# ABGELAUFEN. Wer StaticTransport gegen den Stand aus dem Repo laufen liess,
+# sah abgelaufene Lizenzen und suchte den Fehler im Client.
+#
+# Kein Unittest liest sie -- nur StaticTransport (Entwicklung) und
+# Tests/Manual/smoke.php. Vor deren Gebrauch einmal:
+#
+#     php Modules/LaStore/Tests/Fixtures/build.php
+/Tests/Fixtures/api/*.json
