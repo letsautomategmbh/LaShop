@@ -5,10 +5,22 @@
 *.key
 *.pem
 
-# Die Ausnahme: die Entwicklungsschluessel unter Tests/Fixtures liegen
-# absichtlich hier, damit die Tests ohne Einrichtung laufen. Sie sind
-# Wegwerfschluessel und muessen vor der ersten Veroeffentlichung ersetzt
-# werden — die vier Schritte stehen in Tests/Fixtures/keys/README.md.
+# Die Ausnahme: die Fixture-Schluessel unter Tests/Fixtures/keys liegen
+# absichtlich hier, damit die Tests ohne Einrichtung laufen.
+#
+# Sie sind REINES TESTMATERIAL, und das ist abgeschlossen -- nicht geplant.
+# Support/PublicKeys.php kennt nur lat1/lat2 (token) und lap1/lap2
+# (package); ein mit la1 gezeichnetes Token faellt in jeder ausgelieferten
+# Installation als unknown_key durch. Der Entwicklungsserver zeichnet seit
+# dem 01.09.2026 mit eigenem dev1/dev2, ausserhalb dieses Repos.
+#
+# Hier stand bis zum 04.09.2026 "muessen vor der ersten Veroeffentlichung
+# ersetzt werden". Das war zu dem Zeitpunkt schon erledigt und beschrieb
+# eine offene Aufgabe, die es nicht mehr gab. Beim Veroeffentlichen des
+# Repos hat der Satz genau das ausgeloest, wovor ein Kommentar bewahren
+# soll: eine halbe Stunde Nachpruefen einer Sache, die feststand. Wer die
+# Lage in einem Satz braucht, findet sie in Tests/Fixtures/keys/README.md,
+# Abschnitt "Wenn diese Schluessel doch abfliessen".
 #
 # Die Regel ist so gebaut, dass ein Schluessel an JEDER ANDEREN Stelle
 # blockiert bleibt. Wer spaeter versehentlich einen echten Schluessel
