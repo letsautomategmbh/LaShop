@@ -208,6 +208,7 @@ class LaStoreServiceProvider extends ServiceProvider
              * falschen Stueck.
              */
             echo '<li class="'.$active.'"><a href="'.route('lastore.index').'">'
+                .'<i class="glyphicon glyphicon-download-alt"></i> '
                 .__('LaShop').'</a></li>';
         }, 24);
     }
