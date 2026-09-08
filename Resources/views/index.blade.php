@@ -174,6 +174,27 @@
      `body_bottom` ist der Haken im Layout des Kerns, direkt vor den Skripten
      und ausserhalb aller Behaelter. Dort gilt der z-index gegen alles. --}}
 @section('body_bottom')
+    {{--
+        @parent MUSS hier stehen, und das ist keine Formsache.
+
+        FreeScout haengt seine schwebenden Meldungen ueber
+        @section('body_bottom') ein -- Erfolg, Warnung, Fehler, alle. Blade
+        setzt spaeteren Inhalt an die Stelle, an der @parent steht; fehlt es,
+        wird der spaetere Inhalt STILL verworfen. Genau das war hier der Fall,
+        und deshalb war diese Seite stumm.
+
+        Die Wirkung war teuer. Das Modulupdate scheiterte auf unserem Host an
+        etwas anderem (rename ueber eine Dateisystemgrenze), und der Knopf
+        sagte dazu nichts: "Das Modulverzeichnis liess sich nicht ersetzen"
+        wurde gesetzt und hier verschluckt. Ein Knopf, der nichts tut und
+        nichts sagt, sieht aus wie einer ohne Funktion -- Booking stand
+        deshalb wochenlang auf 0.11.0, waehrend im Katalog 0.13.0 lag.
+
+        Es ist die einzige Ansicht in allen unseren Modulen, die diesen
+        Abschnitt belegt hat, ohne ihn weiterzugeben.
+    --}}
+    @parent
+
         {{-- Eigene Stile, knapp und nur fuer dieses Fenster:
 
              z-index ueber ALLES. FreeScout haelt ein festes Element mit 9999
