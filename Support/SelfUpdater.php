@@ -354,6 +354,51 @@ class SelfUpdater
     }
 
     /**
+     * Der eine oberste Ordner im ausgepackten Archiv.
+     *
+     * Hier stand $bau.'/'.self::ORDNER, also die Annahme, das Archiv trage
+     * den Namen unseres Verzeichnisses. Das tut es NICHT: der Shop benennt
+     * den obersten Ordner beim Einliefern auf das Feld "name" aus der
+     * module.json um -- und das ist bei uns "LaShop", waehrend das
+     * Verzeichnis "LaStore" heisst. Ergebnis war "Im Archiv fehlt der Ordner
+     * LaStore" bei einem Archiv, das voellig in Ordnung war; LaShop konnte
+     * sich also nicht selbst aktualisieren, seit der Shop normalisiert.
+     *
+     * Der Name im Archiv ist auch die falsche Frage. Wohin getauscht wird,
+     * weiss dieses Modul aus sich selbst -- es laeuft aus diesem
+     * Verzeichnis. Was im Archiv steckt, wird ueber module.json geprueft:
+     * Kuerzel und Fassung sagen mehr als ein Ordnername.
+     *
+     * Genau EIN Ordner muss es sein. Zwei bedeuten ein Archiv, das etwas
+     * anderes ist als ein Modul, und dann ist Raten das Falscheste.
+     *
+     * @return string
+     */
+    private static function imArchiv($bau)
+    {
+        $ordner = array();
+
+        foreach ((array) scandir($bau) as $eintrag) {
+            if ($eintrag === '.' || $eintrag === '..' || $eintrag === '__MACOSX') {
+                continue;
+            }
+
+            if (is_dir($bau.'/'.$eintrag)) {
+                $ordner[] = $eintrag;
+            }
+        }
+
+        if (count($ordner) !== 1) {
+            throw new StoreException(
+                Text::get('Das Archiv hat nicht genau einen obersten Ordner, sondern :anzahl.', ['anzahl' => count($ordner)]),
+                'bad_package_shape'
+            );
+        }
+
+        return $bau.'/'.$ordner[0];
+    }
+
+    /**
      * Ist das Ausgepackte wirklich dieses Modul in dieser Fassung?
      *
      * Der Sinn ist nicht Misstrauen gegen die Signatur -- die ist geprueft.
@@ -367,14 +412,7 @@ class SelfUpdater
      */
     private static function pruefeBaum($bau, $version)
     {
-        $ordner = $bau.'/'.self::ORDNER;
-
-        if (!is_dir($ordner)) {
-            throw new StoreException(
-                Text::get('Im Archiv fehlt der Ordner :ordner.', ['ordner' => self::ORDNER]),
-                'bad_package_shape'
-            );
-        }
+        $ordner = self::imArchiv($bau);
 
         $json = $ordner.'/module.json';
 
@@ -444,7 +482,10 @@ class SelfUpdater
                 'working_copy'
             );
         }
-        $neu = $bau.'/'.self::ORDNER;
+        // Der Ordner IM ARCHIV, wie er wirklich heisst -- nicht wie unser
+        // Verzeichnis heisst. Der Shop benennt ihn auf "name" aus der
+        // module.json um, und das ist "LaShop" und nicht "LaStore".
+        $neu = self::imArchiv($bau);
         $alt = $modules.'/.'.strtolower(self::ORDNER).'-alt-'.date('Ymd-His');
 
         if (!is_dir($jetzt)) {

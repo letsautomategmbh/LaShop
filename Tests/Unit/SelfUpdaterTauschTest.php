@@ -98,6 +98,53 @@ class SelfUpdaterTauschTest extends TestCase
         $this->assertFileExists($this->wurzel.'/bau/LaStore/neu.txt');
     }
 
+    /**
+     * So kommt das Archiv wirklich vom Shop: der oberste Ordner heisst
+     * "LaShop".
+     *
+     * Der Shop benennt ihn beim Einliefern auf das Feld "name" aus der
+     * module.json um — richtig so, denn daraus wird bei jedem anderen Modul
+     * der Zielordner. Nur bei uns weichen die beiden ab: das Verzeichnis
+     * heisst LaStore, das Modul heisst LaShop. Der Tausch suchte "LaStore"
+     * im Archiv, fand es nicht und meldete "Im Archiv fehlt der Ordner
+     * LaStore" — bei einem völlig einwandfreien Paket. LaShop konnte sich
+     * also nicht selbst aktualisieren, und aufgefallen ist es erst, als der
+     * Weg gebraucht wurde.
+     *
+     * Der übrige Teil dieser Klasse prüft mit "LaStore" im Archiv und wäre
+     * auch vorher grün gewesen. Deshalb dieser Fall EXTRA.
+     */
+    public function test_der_oberste_ordner_im_archiv_darf_anders_heissen()
+    {
+        $this->weg($this->wurzel.'/bau/LaStore');
+        mkdir($this->wurzel.'/bau/LaShop', 0755, true);
+        file_put_contents($this->wurzel.'/bau/LaShop/neu.txt', 'der neue Stand');
+
+        $alt = $this->tauschen();
+
+        $this->assertFileExists(
+            $this->wurzel.'/Modules/LaStore/neu.txt',
+            'Getauscht wird in unser Verzeichnis — unabhängig davon, wie der Ordner im Archiv heisst.'
+        );
+        $this->assertFileExists($alt.'/alt.txt');
+    }
+
+    public function test_zwei_oberste_ordner_sind_kein_modul()
+    {
+        // Raten wäre hier das Falscheste: ein Archiv mit zwei Ordnern ist
+        // etwas anderes als ein Modul, und der Tausch ist nicht umkehrbar.
+        mkdir($this->wurzel.'/bau/NochEiner', 0755, true);
+
+        try {
+            $this->tauschen();
+            $this->fail('Der Tausch hätte abbrechen müssen.');
+        } catch (StoreException $e) {
+            $this->assertSame('bad_package_shape', $e->errorCode());
+        }
+
+        $this->assertFileExists($this->wurzel.'/Modules/LaStore/alt.txt');
+    }
+
     private function weg($pfad)
     {
         if (!is_dir($pfad)) {
