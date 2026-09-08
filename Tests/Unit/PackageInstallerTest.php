@@ -86,6 +86,23 @@ class PackageInstallerTest extends TestCase
             {
                 return $this->testPfad;
             }
+
+            // Nur fuer den Test nach aussen gelegt: die Lage des
+            // Arbeitsverzeichnisses IST die Zusicherung, um die es hier geht.
+            public function arbeitsDirOeffentlich($prefix)
+            {
+                return $this->arbeitsDir($prefix);
+            }
+
+            public function wegraeumenOeffentlich()
+            {
+                $this->alteArbeitWegraeumen();
+            }
+
+            public function modulesPathOeffentlich()
+            {
+                return $this->modulesPath();
+            }
         };
     }
 
@@ -181,4 +198,71 @@ class PackageInstallerTest extends TestCase
             throw $e;
         }
     }
+
+    /**
+     * Der Grund, warum das Update auf dem echten Host nie durchlief.
+     *
+     * Ausgepackt wurde nach sys_get_temp_dir(), getauscht wird mit rename() --
+     * und rename() kann nicht ueber Dateisystemgrenzen. Auf CloudLinux (unser
+     * eigener Host) hat der PHP-Prozess ein eigenes /tmp auf einem anderen
+     * Datentraeger als das Konto. Ergebnis: Paket geholt, Signatur geprueft,
+     * dann "liess sich nicht ersetzen". Jedes Mal, seit es das Modul gibt.
+     *
+     * Dieser Test prueft nicht das Symptom, sondern die Zusicherung: das
+     * Arbeitsverzeichnis liegt IM Modulverzeichnis. Dann KANN dort keine
+     * Grenze sein -- unabhaengig davon, wie der Host sein /tmp einhaengt.
+     * Ein Test auf "gleiche Geraetenummer" waere hier wertlos: genau die
+     * stimmte auf dem Host ueberein, und rename() scheiterte trotzdem.
+     */
+    public function testDasArbeitsverzeichnisLiegtImModulverzeichnis()
+    {
+        $installer = $this->installer();
+
+        $auspack = $installer->arbeitsDirOeffentlich('.lastore-auspack-');
+
+        $this->assertDirectoryExists($auspack);
+        $this->assertSame(
+            $installer->modulesPathOeffentlich(),
+            dirname($auspack),
+            'Das Arbeitsverzeichnis muss NEBEN dem Ziel liegen, sonst ist rename() eine Wette auf den Host.'
+        );
+        $this->assertStringStartsWith(
+            '.',
+            basename($auspack),
+            'Ohne fuehrenden Punkt findet FreeScouts glob das halbfertige Verzeichnis als Modul.'
+        );
+    }
+
+    public function testNachDerInstallationBleibtKeinArbeitsverzeichnisLiegen()
+    {
+        $zip = $this->archiv(array(
+            'Backup/module.json' => json_encode(array('name' => 'Backup', 'alias' => 'backup', 'version' => '1.9.5')),
+        ));
+
+        $this->installer()->install($zip, 'backup');
+
+        $this->assertSame(
+            array(),
+            (array) glob($this->arbeit.'/Modules/.lastore-auspack-*', GLOB_ONLYDIR),
+            'Das Arbeitsverzeichnis wird am Ende entfernt -- auch das unsichtbare.'
+        );
+    }
+
+    public function testLiegengebliebeneArbeitBleibtEineStundeVerschont()
+    {
+        // Bricht der Vorgang hart ab, bleibt ein Verzeichnis liegen. Alte
+        // werden geraeumt; ein PARALLEL laufender Vorgang darf seines aber
+        // nicht unter den Haenden verlieren.
+        $alt = $this->arbeit.'/Modules/.lastore-auspack-altaltalt';
+        $neu = $this->arbeit.'/Modules/.lastore-auspack-frischfrisch';
+        mkdir($alt, 0700, true);
+        mkdir($neu, 0700, true);
+        touch($alt, time() - 7200);
+
+        $this->installer()->wegraeumenOeffentlich();
+
+        $this->assertDirectoryDoesNotExist($alt, 'Zwei Stunden alt: weg.');
+        $this->assertDirectoryExists($neu, 'Gerade angelegt: das koennte ein laufender Vorgang sein.');
+    }
+
 }

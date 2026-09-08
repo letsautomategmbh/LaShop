@@ -147,7 +147,9 @@ class PackageInstaller
             );
         }
 
-        $auspack = $this->tempDir('lastore-auspack-');
+        $this->alteArbeitWegraeumen();
+
+        $auspack = $this->arbeitsDir('.lastore-auspack-');
 
         try {
             $ordner = $this->entpacken($zip, $auspack);
@@ -312,15 +314,62 @@ class PackageInstaller
         return $pfad.$suffix;
     }
 
-    protected function tempDir($prefix)
+    /**
+     * Ein Arbeitsverzeichnis NEBEN dem Ziel, nicht in /tmp.
+     *
+     * Der Tausch am Ende ist ein rename(), und rename() kann nicht ueber
+     * Dateisystemgrenzen. Hier stand sys_get_temp_dir(), und auf unserem
+     * eigenen Host ist das eine solche Grenze: CloudLinux gibt dem PHP-
+     * Prozess ein eigenes /tmp, das nicht auf dem Datentraeger des Kontos
+     * liegt. Die Folge war ein Update, das NIE durchlief -- Paket geholt,
+     * Signatur geprueft, dann "Das Modulverzeichnis liess sich nicht
+     * ersetzen". Auf der Entwicklungsmaschine lag beides auf einem
+     * Datentraeger, dort fiel es nie auf.
+     *
+     * Ein Pfad IM Modulverzeichnis kann diese Grenze nicht haben -- das ist
+     * eine Zusicherung des Aufbaus und nicht eine Eigenschaft des Hosts.
+     * Der SelfUpdater macht es seit je so (storage/app) und lief deshalb.
+     *
+     * Der fuehrende Punkt ist Absicht: FreeScout findet Module ueber ein
+     * glob-Muster, das im Modulverzeichnis mit einem Stern nach Unterordnern
+     * mit module.json sucht -- und ein Stern uebergeht in glob jeden Namen,
+     * der mit einem Punkt beginnt. Das halbfertige Verzeichnis ist fuer
+     * FreeScout also unsichtbar, solange es dort liegt.
+     *
+     * @return string
+     */
+    protected function arbeitsDir($prefix)
     {
-        $pfad = sys_get_temp_dir().'/'.$prefix.bin2hex(random_bytes(6));
+        $pfad = $this->modulesPath().'/'.$prefix.bin2hex(random_bytes(6));
 
-        if (!@mkdir($pfad, 0700, true)) {
-            throw new StoreException(Text::get('Es liess sich kein temporäres Verzeichnis anlegen.'), 'no_temp_dir');
+        if (!@mkdir($pfad, 0700, true) && !is_dir($pfad)) {
+            throw new StoreException(
+                Text::get('Im Modulverzeichnis liess sich kein Arbeitsverzeichnis anlegen. Fehlen dort Schreibrechte?'),
+                'no_temp_dir'
+            );
         }
 
         return $pfad;
+    }
+
+    /**
+     * Liegengebliebene Arbeitsverzeichnisse entfernen.
+     *
+     * Bricht der Vorgang hart ab -- Zeitlimit, Speicher, Neustart --, bleibt
+     * das halbfertige Verzeichnis liegen. Unsichtbar zwar, aber es belegt
+     * Platz, und beim naechsten Mal soll niemand raten muessen, welches
+     * davon von jetzt ist. Eine Stunde Abstand, damit ein PARALLEL laufender
+     * Vorgang seines behaelt.
+     */
+    protected function alteArbeitWegraeumen()
+    {
+        $muster = $this->modulesPath().'/.lastore-auspack-*';
+
+        foreach ((array) glob($muster, GLOB_ONLYDIR) as $pfad) {
+            if (@filemtime($pfad) < time() - 3600) {
+                $this->loeschen($pfad);
+            }
+        }
     }
 
     protected function loeschen($pfad)
