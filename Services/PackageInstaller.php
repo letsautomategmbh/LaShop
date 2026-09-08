@@ -271,6 +271,23 @@ class PackageInstaller
     /**
      * Den bisherigen Stand beiseitelegen, nicht loeschen.
      *
+     * Mit einem PUNKT davor, und das ist der Punkt: hier hiess die Sicherung
+     * "Backup.vorher-20260908-083834" -- und darin liegt eine module.json mit
+     * Namen "Backup". FreeScout findet Module ueber ein glob-Muster mit
+     * Stern, und ein Stern nimmt jeden Namen ohne fuehrenden Punkt: die
+     * Sicherung war damit ein auffindbares Modul, das sich als der ALTE Stand
+     * desselben Moduls ausgibt.
+     *
+     * Nachgemessen auf unserer Anlage: geladen wurde trotzdem das richtige
+     * Verzeichnis, weil die Sammlung nach Namen schluesselt und der Konflikt
+     * zugunsten des echten ausging. Das ist aber Glueck und keine Zusage --
+     * eine andere Reihenfolge von glob, und es laeuft der alte Code, waehrend
+     * die Fassungsnummer die neue nennt. Genau diese Sorte Widerspruch hat
+     * hier schon zweimal eine Fehlsuche verursacht.
+     *
+     * Der SelfUpdater legt seinen alten Stand seit je punktbenannt ab. Es war
+     * nur diese Stelle, die es anders machte.
+     *
      * @return string|null Pfad der Sicherung
      */
     protected function beiseite($ziel)
@@ -279,7 +296,7 @@ class PackageInstaller
             return null;
         }
 
-        $sicherung = $ziel.'.vorher-'.date('Ymd-His');
+        $sicherung = dirname($ziel).'/.'.basename($ziel).'.vorher-'.date('Ymd-His');
 
         if (!@rename($ziel, $sicherung)) {
             throw new StoreException(

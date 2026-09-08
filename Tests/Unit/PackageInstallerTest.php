@@ -248,6 +248,48 @@ class PackageInstallerTest extends TestCase
         );
     }
 
+    /**
+     * Die Sicherung darf FreeScout nicht als Modul unter die Augen kommen.
+     *
+     * Sie hiess "Backup.vorher-20260908-083834", und darin liegt eine
+     * module.json mit Namen "Backup". Gefunden werden Module über ein
+     * glob-Muster mit Stern — die Sicherung war damit ein auffindbares Modul,
+     * das sich als der ALTE Stand desselben Moduls ausgibt.
+     *
+     * Auf unserer Anlage lief trotzdem das richtige Verzeichnis: die Sammlung
+     * schlüsselt nach Namen, und der Konflikt ging gut aus. Verlassen kann
+     * man sich darauf nicht — deshalb wird hier gezählt, was glob findet, und
+     * nicht, was am Ende geladen wurde.
+     */
+    public function testDieSicherungIstFuerFreeScoutKeinModul()
+    {
+        mkdir($this->arbeit.'/Modules/Backup', 0777, true);
+        file_put_contents(
+            $this->arbeit.'/Modules/Backup/module.json',
+            json_encode(array('name' => 'Backup', 'alias' => 'backup', 'version' => '1.9.5'))
+        );
+
+        $zip = $this->archiv(array(
+            'Backup/module.json' => json_encode(array('name' => 'Backup', 'alias' => 'backup', 'version' => '1.9.6')),
+        ));
+
+        $ergebnis = $this->installer()->install($zip, 'backup');
+
+        // Genau dasselbe Muster, mit dem FreeScout sucht.
+        $gefunden = (array) glob($this->arbeit.'/Modules/*/module.json');
+
+        $this->assertCount(
+            1,
+            $gefunden,
+            'Nach dem Update darf genau EIN Modul auffindbar sein — die Sicherung ist keins.'
+        );
+        $this->assertSame($this->arbeit.'/Modules/Backup/module.json', $gefunden[0]);
+
+        // Und sie ist trotzdem da, sonst gäbe es keinen Rückweg.
+        $this->assertDirectoryExists($ergebnis['backup']);
+        $this->assertStringStartsWith('.', basename($ergebnis['backup']));
+    }
+
     public function testLiegengebliebeneArbeitBleibtEineStundeVerschont()
     {
         // Bricht der Vorgang hart ab, bleibt ein Verzeichnis liegen. Alte
