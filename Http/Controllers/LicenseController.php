@@ -78,7 +78,7 @@ class LicenseController extends Controller
         }
 
         /*
-         * Bei dieser Gelegenheit auch nach LaShop selbst sehen -- und die
+         * Bei dieser Gelegenheit auch nach LaStore selbst sehen -- und die
          * Tagessperre dabei zurueckstellen.
          *
          * Der Grund: die Seite sieht von sich aus hoechstens einmal am Tag

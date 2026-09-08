@@ -26,7 +26,7 @@
     </li>
     <li class="active">
         <a href="{{ route('lastore.index') }}">
-            <i class="glyphicon glyphicon-shopping-cart"></i> {{ __('LaShop') }}
+            <i class="glyphicon glyphicon-shopping-cart"></i> {{ __('LaStore') }}
         </a>
     </li>
 </ul>

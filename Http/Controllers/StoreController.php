@@ -46,7 +46,7 @@ class StoreController extends Controller
         }
 
         /*
-         * Beilaeufig nachsehen, ob LaShop selbst etwas Neues hat -- hoechstens
+         * Beilaeufig nachsehen, ob LaStore selbst etwas Neues hat -- hoechstens
          * einmal am Tag.
          *
          * Warum hier und nicht nur im naechtlichen Lauf: der braucht einen
@@ -133,7 +133,7 @@ class StoreController extends Controller
             // Aufruf wird es wieder versucht. Und der Mensch soll es sehen:
             // neuer Code auf alter Datenbank ist die gefaehrlichere Lage.
             \Session::flash('flash_error_unescaped', __(
-                'LaShop :v ist installiert, aber die Datenbank ist nicht nachgezogen. Bitte auf dem Server ausführen: :befehl',
+                'LaStore :v ist installiert, aber die Datenbank ist nicht nachgezogen. Bitte auf dem Server ausführen: :befehl',
                 ['v' => $laeuft, 'befehl' => '<code>'.e(SelfUpdater::anmeldebefehl()).'</code>']
             ));
 
@@ -185,7 +185,7 @@ class StoreController extends Controller
      * zusaetzlich die Signatur des Pakets.
      */
     /**
-     * LaShop selbst aktualisieren.
+     * LaStore selbst aktualisieren.
      *
      * Im Web und nicht nur auf der Kommandozeile, weil genau das die Sorge
      * war: was von Hand geht, wird einmal gemacht und dann nie wieder. Ein
@@ -210,7 +210,7 @@ class StoreController extends Controller
         }
 
         if ($ergebnis['status'] === SelfUpdater::AKTUELL) {
-            \Session::flash('flash_success_floating', __('LaShop ist aktuell.'));
+            \Session::flash('flash_success_floating', __('LaStore ist aktuell.'));
 
             return redirect()->back();
         }
@@ -222,7 +222,7 @@ class StoreController extends Controller
 
         if ($anmeldung && !$anmeldung['ok']) {
             \Session::flash('flash_error_unescaped', __(
-                'LaShop läuft jetzt in Fassung :v, aber die Datenbank ist nicht nachgezogen: :fehler Bitte auf dem Server ausführen: :befehl',
+                'LaStore läuft jetzt in Fassung :v, aber die Datenbank ist nicht nachgezogen: :fehler Bitte auf dem Server ausführen: :befehl',
                 [
                     'v'      => $ergebnis['version'],
                     'fehler' => e($anmeldung['fehler']),
@@ -233,7 +233,7 @@ class StoreController extends Controller
             return redirect()->route('lastore.index');
         }
 
-        \Session::flash('flash_success_floating', __('LaShop läuft jetzt in Fassung :v.', ['v' => $ergebnis['version']]));
+        \Session::flash('flash_success_floating', __('LaStore läuft jetzt in Fassung :v.', ['v' => $ergebnis['version']]));
 
         return redirect()->route('lastore.index');
     }

@@ -12,7 +12,7 @@
 
 @section('content')
 
-    {{-- Der Hinweis auf eine neue Fassung von LaShop selbst.
+    {{-- Der Hinweis auf eine neue Fassung von LaStore selbst.
 
          Er erscheint von SELBST, sobald etwas bereitliegt -- das ist der ganze
          Sinn. Ein Weg, den man suchen muss, wird einmal gegangen und dann nie
@@ -24,7 +24,7 @@
          hinterlegt, die Ansicht liest ihn nur. --}}
     @if (!empty($selbstNeu))
         <div class="alert alert-info">
-            <strong>{{ __('Für LaShop liegt Fassung :v bereit.', ['v' => $selbstNeu]) }}</strong>
+            <strong>{{ __('Für LaStore liegt Fassung :v bereit.', ['v' => $selbstNeu]) }}</strong>
             <form method="POST" action="{{ route('lastore.self_update') }}" class="form-inline" style="display:inline-block;margin-left:10px">
                 {{ csrf_field() }}
                 <button type="submit" class="btn btn-primary btn-sm">{{ __('Jetzt aktualisieren') }}</button>

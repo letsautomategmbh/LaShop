@@ -99,26 +99,30 @@ class SelfUpdaterTauschTest extends TestCase
     }
 
     /**
-     * So kommt das Archiv wirklich vom Shop: der oberste Ordner heisst
-     * "LaShop".
+     * Der oberste Ordner im Archiv darf heissen, wie er will.
      *
-     * Der Shop benennt ihn beim Einliefern auf das Feld "name" aus der
-     * module.json um — richtig so, denn daraus wird bei jedem anderen Modul
-     * der Zielordner. Nur bei uns weichen die beiden ab: das Verzeichnis
-     * heisst LaStore, das Modul heisst LaShop. Der Tausch suchte "LaStore"
-     * im Archiv, fand es nicht und meldete "Im Archiv fehlt der Ordner
-     * LaStore" — bei einem völlig einwandfreien Paket. LaShop konnte sich
-     * also nicht selbst aktualisieren, und aufgefallen ist es erst, als der
-     * Weg gebraucht wurde.
+     * Am 08.09.2026 hiess dieser Test noch "So kommt das Archiv wirklich vom
+     * Shop" und legte einen Ordner "LaShop" hinein: der Shop benennt den
+     * obersten Ordner beim Einliefern auf das Feld "name" aus der module.json
+     * um, und das war "LaShop", waehrend das Verzeichnis "LaStore" heisst.
+     * Der Tausch suchte den Verzeichnisnamen und fand ihn nicht.
      *
-     * Der übrige Teil dieser Klasse prüft mit "LaStore" im Archiv und wäre
-     * auch vorher grün gewesen. Deshalb dieser Fall EXTRA.
+     * Der Name in der module.json heisst seit derselben Umbenennung ebenfalls
+     * "LaStore" -- die Abweichung ist damit an der Wurzel weg. NUR: mit dem
+     * Namen des Verzeichnisses im Archiv prueft dieser Test nichts mehr, er
+     * waere auch mit der alten, kaputten Annahme gruen. Genau das ist beim
+     * Umbenennen passiert, deshalb steht hier jetzt ein Name, der mit keiner
+     * Seite etwas zu tun hat.
+     *
+     * Die Zusicherung bleibt dieselbe und ist die richtige: wohin getauscht
+     * wird, weiss dieses Modul aus sich selbst. Was im Archiv steckt, sagen
+     * Kuerzel und Fassung in der module.json.
      */
     public function test_der_oberste_ordner_im_archiv_darf_anders_heissen()
     {
         $this->weg($this->wurzel.'/bau/LaStore');
-        mkdir($this->wurzel.'/bau/LaShop', 0755, true);
-        file_put_contents($this->wurzel.'/bau/LaShop/neu.txt', 'der neue Stand');
+        mkdir($this->wurzel.'/bau/EinGanzAndererName', 0755, true);
+        file_put_contents($this->wurzel.'/bau/EinGanzAndererName/neu.txt', 'der neue Stand');
 
         $alt = $this->tauschen();
 

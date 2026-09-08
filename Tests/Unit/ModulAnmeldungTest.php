@@ -66,7 +66,7 @@ class ModulAnmeldungTest extends TestCase
     public function testAliasWirdNichtInEinenModulnamenUmgedeutet()
     {
         /*
-         * Drei Zeichenketten bezeichnen dasselbe Modul: Name "LaShop",
+         * Drei Zeichenketten bezeichnen dasselbe Modul: Name "LaStore",
          * Ordner "LaStore", Alias "lastore". \Module::find() sucht den
          * NAMEN -- daran ist nach der Umbenennung schon einmal etwas still
          * durchgefallen. Diese Klasse gibt den Alias weiter, unveraendert,

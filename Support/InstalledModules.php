@@ -28,7 +28,7 @@ class InstalledModules
      * @return array
      */
     /**
-     * Die Detailseite eines Moduls im LaShop.
+     * Die Detailseite eines Moduls im LaStore.
      *
      * Die Beschreibung, die Bildschirmbilder und das Aenderungsprotokoll
      * stehen dort - und nur dort. Eine zweite Fassung im Modul zu pflegen

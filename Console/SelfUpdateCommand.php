@@ -7,7 +7,7 @@ use Modules\LaStore\Services\StoreException;
 use Modules\LaStore\Support\SelfUpdater;
 
 /**
- * LaShop selbst aktualisieren.
+ * LaStore selbst aktualisieren.
  *
  * Getrennt von lastore:update, und zwar mit Grund: dieser Befehl tauscht das
  * Modul aus, in dem er selbst steht. Ihn in dieselbe Schleife zu haengen, die
@@ -22,7 +22,7 @@ class SelfUpdateCommand extends Command
                             {--pruefen : Nur nachsehen, nichts tauschen}
                             {--yes : Ohne Rückfrage}';
 
-    protected $description = 'LaShop selbst auf die neueste Fassung bringen';
+    protected $description = 'LaStore selbst auf die neueste Fassung bringen';
 
     public function handle()
     {

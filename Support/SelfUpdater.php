@@ -6,12 +6,12 @@ use Modules\LaStore\Services\StoreClient;
 use Modules\LaStore\Services\StoreException;
 
 /**
- * LaShop aktualisiert sich selbst.
+ * LaStore aktualisiert sich selbst.
  *
  * Warum es das gibt, obwohl ein Modul, das sich selbst ersetzt, heikel ist:
  * dieses Modul prueft jede andere Signatur. Bleibt es stehen, bleibt alles
  * stehen -- nach einem Schluesselwechsel lehnt es jedes Paket ab, und die
- * Meldung dazu ("LaShop selbst braucht ein Update") waere eine Sackgasse.
+ * Meldung dazu ("LaStore selbst braucht ein Update") waere eine Sackgasse.
  * Ein Weg von Hand ist kein Weg: er wird einmal gegangen und dann nie wieder.
  *
  * NICHT ueber FreeScouts eigenen Updater. Der laedt und entpackt ungeprueft
@@ -49,7 +49,7 @@ class SelfUpdater
     /**
      * Der Alias aus module.json -- klein, und NICHT der Modulname.
      *
-     * Der Name ist "LaShop", der Ordner "LaStore", der Alias "lastore". Drei
+     * Der Name ist "LaStore", der Ordner "LaStore", der Alias "lastore". Drei
      * verschiedene Zeichenketten fuer dasselbe Modul, und jede Kern-Funktion
      * will eine andere davon. Genau daran ist \Module::find() nach der
      * Umbenennung gescheitert. Darum steht der Alias hier EINMAL.
@@ -359,9 +359,9 @@ class SelfUpdater
      * Hier stand $bau.'/'.self::ORDNER, also die Annahme, das Archiv trage
      * den Namen unseres Verzeichnisses. Das tut es NICHT: der Shop benennt
      * den obersten Ordner beim Einliefern auf das Feld "name" aus der
-     * module.json um -- und das ist bei uns "LaShop", waehrend das
+     * module.json um -- und das ist bei uns "LaStore", waehrend das
      * Verzeichnis "LaStore" heisst. Ergebnis war "Im Archiv fehlt der Ordner
-     * LaStore" bei einem Archiv, das voellig in Ordnung war; LaShop konnte
+     * LaStore" bei einem Archiv, das voellig in Ordnung war; LaStore konnte
      * sich also nicht selbst aktualisieren, seit der Shop normalisiert.
      *
      * Der Name im Archiv ist auch die falsche Frage. Wohin getauscht wird,
@@ -445,7 +445,7 @@ class SelfUpdater
         }
 
         // Die zwei Dateien, ohne die das Modul seine Aufgabe nicht mehr
-        // hat. Fehlt eine, ist das Archiv beschnitten -- und ein LaShop
+        // hat. Fehlt eine, ist das Archiv beschnitten -- und ein LaStore
         // ohne Signaturpruefung waere schlimmer als keines.
         foreach (['Support/PublicKeys.php', 'Support/PackageVerifier.php'] as $pflicht) {
             if (!is_file($ordner.'/'.$pflicht)) {
@@ -484,7 +484,7 @@ class SelfUpdater
         }
         // Der Ordner IM ARCHIV, wie er wirklich heisst -- nicht wie unser
         // Verzeichnis heisst. Der Shop benennt ihn auf "name" aus der
-        // module.json um, und das ist "LaShop" und nicht "LaStore".
+        // module.json um, und das ist "LaStore" und nicht "LaStore".
         $neu = self::imArchiv($bau);
         $alt = $modules.'/.'.strtolower(self::ORDNER).'-alt-'.date('Ymd-His');
 

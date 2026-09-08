@@ -122,7 +122,7 @@ class PackageVerifierTest extends TestCase
         // Nach einem Schluesselwechsel ist genau das der Normalfall, darum
         // muss der Hinweis zum Update des MODULS fuehren -- und das Modul beim
         // Namen nennen, damit der Verwalter weiss, welches gemeint ist.
-        $this->assertStringContainsString('LaShop', $e->explain());
+        $this->assertStringContainsString('LaStore', $e->explain());
     }
 
     public function testOhneSignaturWirdNichtInstalliert()

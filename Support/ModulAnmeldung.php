@@ -36,7 +36,7 @@ namespace Modules\LaStore\Support;
  *
  * **Reihenfolge.** Vorher muss `\Module::clearCache()` gelaufen sein, sonst
  * loest `findByAlias()` im Befehl noch die alte `module.json` auf -- und wenn
- * sich der Modulname geaendert hat (LaStore -> LaShop), wanderte die falsche
+ * sich der Modulname geaendert hat (LaStore -> LaStore), wanderte die falsche
  * oder gar keine Migration.
  *
  * **Der Symlink.** `public/modules/<alias>` zeigt auf einen Pfad, nicht auf

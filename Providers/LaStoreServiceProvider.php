@@ -98,7 +98,7 @@ class LaStoreServiceProvider extends ServiceProvider
                     ->dailyAt('03:20')->withoutOverlapping();
 
                 /*
-                 * LaShop selbst NACH den uebrigen Modulen und in einem
+                 * LaStore selbst NACH den uebrigen Modulen und in einem
                  * eigenen Lauf.
                  *
                  * Der Grund ist nicht Hoeflichkeit: dieser Befehl tauscht
@@ -160,7 +160,7 @@ class LaStoreServiceProvider extends ServiceProvider
             }
 
             $url = route('lastore.index');
-            $text = __('LaShop');
+            $text = __('LaStore');
 
             /*
              * BLANKER Code, KEIN <script>-Tag.
@@ -209,7 +209,7 @@ class LaStoreServiceProvider extends ServiceProvider
              */
             echo '<li class="'.$active.'"><a href="'.route('lastore.index').'">'
                 .'<i class="glyphicon glyphicon-download-alt"></i> '
-                .__('LaShop').'</a></li>';
+                .__('LaStore').'</a></li>';
         }, 24);
     }
 }

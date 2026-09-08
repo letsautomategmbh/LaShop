@@ -15,12 +15,12 @@ Route::group([
     // Ein Druck: Schlüssel prüfen, installieren, registrieren.
     Route::post('installieren', 'StoreController@install')->name('install');
     Route::post('autopilot', 'StoreController@autopilot')->name('autopilot');
-    // LaShop selbst. Eigener Weg, weil er das Modul austauscht, in dem er
+    // LaStore selbst. Eigener Weg, weil er das Modul austauscht, in dem er
     // laeuft -- nach dem Tausch wird nichts mehr nachgeladen.
     Route::post('selbst-aktualisieren', 'StoreController@selfUpdate')->name('self_update');
     Route::post('lizenzen/aktivieren', 'LicenseController@activate')->name('licenses.activate');
     Route::post('lizenzen/offline', 'LicenseController@importOffline')->name('licenses.offline');
     Route::post('lizenzen/pruefen', 'LicenseController@refresh')->name('licenses.refresh');
-    // Keine Produktseite im Modul: die Details stehen im LaShop, und zwei
+    // Keine Produktseite im Modul: die Details stehen im LaStore, und zwei
     // Fassungen derselben Beschreibung sind zwei Wahrheiten.
 });

@@ -111,7 +111,7 @@ class PackageVerifier
      * stammte aus derselben gefaelschten Antwort. Nichts Ungeprueftes wurde
      * je entpackt -- aber fruehes Scheitern ist besser als spaetes.
      *
-     * Die Selbstaktualisierung von LaShop benutzt genau das: erst pruefen,
+     * Die Selbstaktualisierung von LaStore benutzt genau das: erst pruefen,
      * dann laden.
      *
      * @param string      $expectedHash
@@ -214,7 +214,7 @@ class PackageVerifier
                 return Text::get('Zu dieser Version gibt es keine Signatur. Sie wird nicht installiert.');
 
             case self::UNKNOWN_KEY:
-                return Text::get('Diese Version ist mit einem Schlüssel signiert, den dieses Modul nicht kennt (:kid). LaShop selbst braucht ein Update.', ['kid' => $this->kid]);
+                return Text::get('Diese Version ist mit einem Schlüssel signiert, den dieses Modul nicht kennt (:kid). LaStore selbst braucht ein Update.', ['kid' => $this->kid]);
 
             case self::BAD_SIGNATURE:
                 return Text::get('Die Signatur des Pakets ist ungültig. Es wird nicht installiert.');

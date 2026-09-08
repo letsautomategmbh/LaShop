@@ -46,7 +46,7 @@ class StoreClient
      *
      * findByAlias und NICHT find: \Module::find() sucht nach dem NAMEN des
      * Moduls, nicht nach dem Kuerzel. Solange beide "LaStore" hiessen, fiel
-     * das nicht auf -- mit der Umbenennung auf "LaShop" fand sich das Modul
+     * das nicht auf -- mit der Umbenennung auf "LaStore" fand sich das Modul
      * selbst nicht mehr, und clientVersion() gab eine leere Zeichenkette.
      *
      * Die Folge war still und haesslich: pruefen() vergleicht die eigene
@@ -209,7 +209,7 @@ class StoreClient
     /**
      * Die neueste Fassung DIESES Moduls.
      *
-     * Ohne Installations-Kopfzeilen: der Weg ist oeffentlich, weil LaShop
+     * Ohne Installations-Kopfzeilen: der Weg ist oeffentlich, weil LaStore
      * keine Lizenz hat und weil es das Stueck ist, ueber das alles andere
      * geprueft ankommt. Eine Installation, die sich noch nie angemeldet hat,
      * muss sich trotzdem aktualisieren koennen -- sonst ist ein
