@@ -110,7 +110,31 @@
         {{-- Karten statt Tabelle, im Stil der FreeScout-Module: Sinnbild,
              Beschreibung, installierte Fassung, Katalogfassung, Zustand.
              Eine Tabelle zeigt Spalten; eine Karte zeigt ein Modul. --}}
-        <div class="row">
+        {{-- FreeScouts eigenes CSS setzt `.module-card img` auf
+             `width: 128px; height: 128px` OHNE `object-fit`
+             (public/css/style.css). Das geht auf, solange jedes Bild
+             quadratisch ist -- die Kacheln aus den module.json sind 256x256.
+
+             Ein Katalogeintrag, der hier NICHT installiert ist, hat aber keine
+             module.json: dann kommt das Bandbild des Ladens, 640x360, und wurde
+             ins Quadrat gequetscht. Genau der Zustand, in dem ein Kunde das
+             Modul zum ersten Mal sieht.
+
+             `cover` schneidet stattdessen mittig zu. Gemessen am Band: die
+             Illustration liegt bei x 212..427 von 640, der mittige Ausschnitt
+             ist x 140..500 -- sie bleibt also vollstaendig, und ringsum steht
+             das Raster. `contain` waere die Alternative, liesse aber oben und
+             unten Luft in einer Reihe sonst gefuellter Kacheln.
+
+             Eng auf diese Liste begrenzt, damit FreeScouts eigene Modulseite
+             unberuehrt bleibt. Wo `object-fit` fehlt (IE11), sieht es aus wie
+             heute -- es faellt auf das alte Verhalten zurueck, statt zu
+             brechen. --}}
+        <style>
+            #lastore-module-liste .module-card img { object-fit: cover; }
+        </style>
+
+        <div class="row" id="lastore-module-liste">
             @foreach ($inventory as $row)
                 @if ($row['state'] === \Modules\LaStore\Support\InstalledModules::STATE_FOREIGN)
                     @continue
